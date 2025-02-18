@@ -167,3 +167,4 @@ Thumbs.db
 temp/
 versions/
 jdk/
+releases.json

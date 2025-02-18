@@ -128,22 +128,24 @@ private fun BitmapFont.width(text: String): Float {
   return layout.width
 }
 
-private fun launchGame(version: GameVersion) {
-  if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev")) {
+var runningProcess: Process? = null
+
+private fun launchGame(version: GameVersion, button: Button): Process =
+  if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
     if (System.getProperty("os.name").startsWith("Windows")) {
-      ProcessBuilder("cmd", "/c", "gradlew.bat lwjgl3:run").run {
+      ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME\\bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
         directory(File("versions/${version.id}/"))
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Linux")) {
-      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew lwjgl3:run").run {
+      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
         directory(File("versions/${version.id}/"))
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Mac")) {
-      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew lwjgl3:run").run {
+      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
         directory(File("versions/${version.id}/"))
@@ -154,7 +156,7 @@ private fun launchGame(version: GameVersion) {
   } else {
     if (System.getProperty("os.name").startsWith("Windows")) {
       ProcessBuilder(
-        "..\\..\\$JAVA_HOME\\bin\\$JAVA_EXEC_NAME",
+        "$JAVA_HOME\\bin\\$JAVA_EXEC_NAME",
         "-cp",
         "lib/*",
         "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
@@ -162,10 +164,10 @@ private fun launchGame(version: GameVersion) {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}\\bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
         directory(File("versions/${version.id}/"))
-      }
+      }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Linux")) {
       ProcessBuilder(
-        "../../$JAVA_HOME/bin/$JAVA_EXEC_NAME",
+        "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
         "-cp",
         "lib/*",
         "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
@@ -173,10 +175,10 @@ private fun launchGame(version: GameVersion) {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
         directory(File("versions/${version.id}/"))
-      }
+      }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Mac")) {
       ProcessBuilder(
-        "../../$JAVA_HOME/bin/$JAVA_EXEC_NAME",
+        "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
         "-cp",
         "lib/*",
         "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
@@ -184,12 +186,15 @@ private fun launchGame(version: GameVersion) {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
         directory(File("versions/${version.id}/"))
-      }
+      }.inheritIO().start()
     } else {
       throw UnsupportedOperationException()
-    }.inheritIO().start()
+    }
+  }.also {
+    button.text = "Click to Stop"
+    button.enabled = true
+    runningProcess = it
   }
-}
 
 class Downloader(
   private val url: String,
@@ -201,9 +206,13 @@ class Downloader(
   private var downloadedBytes: Long = 0
 
   fun download() {
-    thread {
+    thread(isDaemon = false) {
       val connection = URL(url).openConnection()
       totalBytes = if (connection.contentLengthLong == -1L) totalBytes else connection.contentLengthLong
+
+      if (!Gdx.files.local("temp").exists()) {
+        Gdx.files.local("temp").mkdirs()
+      }
 
       val file = RandomAccessFile(Gdx.files.local("temp/$name").file(), "rw")
 
@@ -297,7 +306,7 @@ val JDK_URL = if (System.getProperty("os.name").startsWith("Windows")) {
   throw UnsupportedOperationException()
 }
 
-val JAVA_HOME = if (System.getProperty("os.name").startsWith("Windows")) {
+val JAVA_HOME = File(if (System.getProperty("os.name").startsWith("Windows")) {
   "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
 } else if (System.getProperty("os.name").startsWith("Linux")) {
   "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
@@ -305,7 +314,7 @@ val JAVA_HOME = if (System.getProperty("os.name").startsWith("Windows")) {
   "jdk/jdk-${JDK_VERSION.replace("_", "+")}/Contents/Home"
 } else {
   throw UnsupportedOperationException()
-}
+}).absolutePath
 
 val JAVA_EXEC_NAME = if (System.getProperty("os.name").startsWith("Windows")) {
   "javaw.exe"
@@ -416,19 +425,32 @@ fun versionsFromGitHub(): List<GameVersion> {
 
 fun unpackGame(version: GameVersion) {
   if (System.getProperty("os.name").startsWith("Windows")) {
+    if (!Gdx.files.local("versions").exists()) {
+      Gdx.files.local("versions").mkdirs()
+    }
+
     ZipFile(Gdx.files.local("temp/${version.id}").file()).use { zip ->
       if (!Gdx.files.local("versions/${version.id}").exists()) {
         Gdx.files.local("versions/${version.id}").mkdirs()
       }
       zip.entries().asSequence().forEach { entry ->
         zip.getInputStream(entry).use { inputStream ->
-          if (!Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent()
-              .exists()
-          ) {
-            Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent().mkdirs()
+          if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
+            if (!Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent()
+                .exists()
+            ) {
+              Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent().mkdirs()
+            }
+            Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}")
+              .write(inputStream, false)
+          } else {
+            if (!Gdx.files.local("temp/${version.id}-extract").exists()) {
+              Gdx.files.local("temp/${version.id}-extract").mkdirs()
+            }
+            Gdx.files.local("temp/${version.id}-extract/${entry.name.substringAfter('/')}").parent().mkdirs()
+            Gdx.files.local("temp/${version.id}-extract/${entry.name.substringAfter('/')}")
+              .write(inputStream, false)
           }
-          Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}")
-            .write(inputStream, false)
         }
       }
     }
@@ -448,7 +470,7 @@ fun unpackGame(version: GameVersion) {
       println("Failed to unpack ${version.id}")
     }
 
-    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev")) {
+    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
       val exec2 = Runtime.getRuntime()
         .exec(arrayOf("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}"))
 
@@ -491,7 +513,7 @@ fun unpackGame(version: GameVersion) {
       println("Failed to unpack ${version.id}")
     }
 
-    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev")) {
+    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
       val arrayOf =
         arrayOf("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}")
       println(arrayOf.contentToString())
@@ -554,28 +576,61 @@ fun unpack(path: String, dest: String) {
   }
 }
 
+fun killProcess(process: Process) {
+  try {
+    process.destroyForcibly()
+    process.descendants().forEach {
+      it.destroyForcibly()
+    }
+    process.waitFor()
+  } catch (e: Exception) {
+    println(e.message)
+  }
+}
+
 /** [com.badlogic.gdx.ApplicationListener] implementation shared by all platforms. */
-class Main : ApplicationAdapter() {
+object Main : ApplicationAdapter() {
+
+  private lateinit var looper: Thread
   private val spriteBatch by lazy { SpriteBatch() }
 
   private val font by lazy { BitmapFont(Gdx.files.internal("luna_pixel.fnt")) }
 
   private var selectedVersion: GameVersion? = null
 
+  private var triedDestoyingOnce = false
+
   private val playButton by lazy {
     Button(font, callback = {
+      val runningProcess1 = runningProcess
+      if (runningProcess1 != null && runningProcess1.isAlive) {
+        try {
+          killProcess(runningProcess1)
+        } catch (e: Exception) {
+          println(e.message)
+        }
+        return@Button
+      }
+
+      triedDestoyingOnce = false
       val version = selectedVersion ?: return@Button
 
       enabled = false
 
+      if (version is ChannelVersion) {
+        File("versions/${version.id}").deleteRecursively()
+      }
+
       if (!version.isDownloaded()) {
         downloadGame(version, this) {
+
+          File("temp").deleteRecursively()
           text = "Launching ${version.name}"
-          launchGame(version)
+          launchGame(version, this)
         }
       } else {
         text = "Launching ${version.name}"
-        launchGame(version)
+        launchGame(version, this)
       }
     })
   }
@@ -597,8 +652,8 @@ class Main : ApplicationAdapter() {
   }
 
   private val background by lazy { Texture(Gdx.files.internal("background.png")) }
-
   val width get() = Gdx.graphics.width.toFloat() / 2f
+
   val height get() = Gdx.graphics.height.toFloat() / 2f
 
   private var selectedButton: Button? = null
@@ -650,6 +705,26 @@ class Main : ApplicationAdapter() {
         return true
       }
     }
+
+    looper = thread(isDaemon = false) {
+      while (true) {
+        if (runningProcess != null && !runningProcess!!.isAlive) {
+          runningProcess = null
+          playButton.enabled = true
+          playButton.text = "Play"
+        }
+
+        try {
+          Thread.sleep(1000)
+        } catch (e: Exception) {
+          return@thread
+        }
+
+        if (Thread.interrupted()) {
+          return@thread
+        }
+      }
+    }
   }
 
   var scrollY = 0f
@@ -697,5 +772,17 @@ class Main : ApplicationAdapter() {
       spriteBatch.projectionMatrix.scl(1 / 2f)
       spriteBatch.end()
     }
+  }
+
+  fun handleClose(): Boolean {
+    val process = runningProcess
+    if (process != null && process.isAlive) {
+      killProcess(process)
+      return false
+    }
+    if (this::looper.isInitialized) {
+      looper.interrupt()
+    }
+    return true
   }
 }
