@@ -35,5 +35,5 @@ jobs:
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/construo/dist/*.zip
+          files: lwjgl3/build/construo/dist/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
