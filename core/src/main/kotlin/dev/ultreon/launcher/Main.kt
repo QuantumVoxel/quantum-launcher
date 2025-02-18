@@ -30,10 +30,14 @@ private val userHome = System.getProperty("user.home")
 
 val root: Path by lazy {
   when {
-    osName.startsWith("Windows") -> Paths.get(userHome, "AppData\\Roaming\\QuantumVoxel")
+    osName.startsWith("Windows") -> Paths.get(System.getenv("APPDATA"), "QuantumVoxel")
     osName.startsWith("Linux") -> Paths.get(userHome, ".config/QuantumVoxel")
     osName.startsWith("Mac") -> Paths.get(userHome, "Library/Application Support/QuantumVoxel")
     else -> throw UnsupportedOperationException()
+  }.also {
+    if (Files.notExists(it)) {
+      Files.createDirectories(it)
+    }
   }
 }
 
@@ -713,7 +717,7 @@ object Main : ApplicationAdapter() {
       }
 
       if (!version.isDownloaded()) {
-        val name = version.id + if (osName.startsWith("Windows")) ".zip" else ""
+        val name = version.id
         download(version.gameUrl, name, onProgress = { text = "Downloading Game (${(it * 100).toInt()}%)" }) {
           text = "Extracting Game"
           unpackGame(version)
