@@ -246,9 +246,12 @@ fun download(
 }
 
 private fun downloadGame(selectedVersion: GameVersion, button: Button, callback: () -> Unit) {
-  download(selectedVersion.gameUrl, selectedVersion.id + "", onProgress = {
-    button.text = "Downloading Game (${(it * 100).toInt()}%)"
-  }) {
+  download(
+    selectedVersion.gameUrl,
+    selectedVersion.id + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "",
+    onProgress = {
+      button.text = "Downloading Game (${(it * 100).toInt()}%)"
+    }) {
     button.text = "Unpacking Game"
     unpackGame(selectedVersion)
     callback()
@@ -307,15 +310,17 @@ val JDK_URL = if (System.getProperty("os.name").startsWith("Windows")) {
   throw UnsupportedOperationException()
 }
 
-val JAVA_HOME = File(if (System.getProperty("os.name").startsWith("Windows")) {
-  "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
-} else if (System.getProperty("os.name").startsWith("Linux")) {
-  "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
-} else if (System.getProperty("os.name").startsWith("Mac")) {
-  "jdk/jdk-${JDK_VERSION.replace("_", "+")}/Contents/Home"
-} else {
-  throw UnsupportedOperationException()
-}).absolutePath
+val JAVA_HOME = File(
+  if (System.getProperty("os.name").startsWith("Windows")) {
+    "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
+  } else if (System.getProperty("os.name").startsWith("Linux")) {
+    "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
+  } else if (System.getProperty("os.name").startsWith("Mac")) {
+    "jdk/jdk-${JDK_VERSION.replace("_", "+")}/Contents/Home"
+  } else {
+    throw UnsupportedOperationException()
+  }
+).absolutePath
 
 val JAVA_EXEC_NAME = if (System.getProperty("os.name").startsWith("Windows")) {
   "javaw.exe"
@@ -431,7 +436,16 @@ fun unpackGame(version: GameVersion) {
     }
 
     val exec = Runtime.getRuntime()
-      .exec(arrayOf("powershell", "Expand-Archive", "-Path", "temp/${version.id}", "-DestinationPath", "temp/${version.id}-extract"))
+      .exec(
+        arrayOf(
+          "powershell",
+          "Expand-Archive",
+          "-Path",
+          "temp/${version.id}.zip",
+          "-DestinationPath",
+          "temp/${version.id}-extract"
+        )
+      )
 
     val waitFor =
       exec.waitFor()
@@ -451,7 +465,16 @@ fun unpackGame(version: GameVersion) {
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
       val exec2 = Runtime.getRuntime()
-        .exec(arrayOf("powershell", "Move-Item", "-Path", "temp/${version.id}-extract/", "-Destination", "versions/${version.id}"))
+        .exec(
+          arrayOf(
+            "powershell",
+            "Move-Item",
+            "-Path",
+            Gdx.files.local("temp/${version.id}-extract").list()[0].toString(),
+            "-Destination",
+            "versions/${version.id}"
+          )
+        )
 
       val waitFor2 =
         exec2.waitFor()
@@ -462,6 +485,36 @@ fun unpackGame(version: GameVersion) {
         for (i in 0 until exec2.errorStream.available()) {
           print(exec2.errorStream.read().toChar().also { text += it })
         }
+        println("Failed to move ${version.id}")
+
+        JOptionPane.showMessageDialog(null, "Failed to move ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
+        Main.playButton.text = "Play"
+        Main.playButton.enabled = true
+        return
+      }
+    } else {
+      val exec2 = Runtime.getRuntime()
+        .exec(
+          arrayOf(
+            "powershell",
+            "Move-Item",
+            "-Path",
+            "temp/${version.id}-extract",
+            "-Destination",
+            "versions/${version.id}"
+          )
+        )
+
+      val waitFor2 =
+        exec2.waitFor()
+
+      if (waitFor2 != 0) {
+        var text = ""
+
+        for (i in 0 until exec2.errorStream.available()) {
+          print(exec2.errorStream.read().toChar().also { text += it })
+        }
+
         println("Failed to move ${version.id}")
 
         JOptionPane.showMessageDialog(null, "Failed to move ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
@@ -566,27 +619,17 @@ fun unpackGame(version: GameVersion) {
 
 fun unpack(path: String, dest: String) {
   if (System.getProperty("os.name").startsWith("Windows")) {
-    ZipFile(Gdx.files.local(path).file()).use { zip ->
-      zip.entries().asSequence().forEach { entry ->
-        zip.getInputStream(entry).use { inputStream ->
-          val local = Gdx.files.local(dest)
-          if (!local.parent().exists()) {
-            local.parent().mkdirs()
-          }
-          local.write(inputStream, false)
-        }
-      }
-    }
+    Runtime.getRuntime().exec(arrayOf("powershell", "Expand-Archive", "-Path", path, "-DestinationPath", dest)).waitFor()
   } else if (System.getProperty("os.name").startsWith("Linux")) {
     if (!File(dest).exists()) {
       File(dest).mkdirs()
     }
-    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest))
+    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest)).waitFor()
   } else if (System.getProperty("os.name").startsWith("Mac")) {
     if (!File(dest).exists()) {
       File(dest).mkdirs()
     }
-    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest))
+    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest)).waitFor()
   } else {
     throw UnsupportedOperationException()
   }
@@ -705,10 +748,10 @@ object Main : ApplicationAdapter() {
     playButton.text = "Play"
     if (!File("jdk").exists()) {
       playButton.enabled = false
-      download(JDK_URL, "jdk.tmp", onProgress = {
+      download(JDK_URL, "jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ".tar.gz", onProgress = {
         playButton.text = "Downloading JDK (${(it * 100).toInt()}%)"
       }) {
-        unpack("temp/jdk.tmp", "jdk")
+        unpack("temp/jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ".tar.gz", "jdk")
 
         playButton.enabled = true
         playButton.text = "Play"
