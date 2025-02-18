@@ -15,7 +15,6 @@ import com.badlogic.gdx.utils.JsonValue
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.URL
-import java.util.zip.ZipFile
 import javax.swing.JOptionPane
 import kotlin.concurrent.thread
 
@@ -204,9 +203,8 @@ class Downloader(
   private val onProgress: ((Float) -> Unit)? = null,
   private val onComplete: (() -> Unit)? = null
 ) {
-  private var downloadedBytes: Long = 0
-
   fun download() {
+    var downloadedBytes: Long = 0
     thread(isDaemon = false) {
       val connection = URL(url).openConnection()
       totalBytes = if (connection.contentLengthLong == -1L) totalBytes else connection.contentLengthLong
@@ -230,7 +228,7 @@ class Downloader(
       file.close()
 
       // Wait for the file to be found (some random issue on macOS cause the file not to be found immediately)
-      while (!File("temp/$name").exists()) {
+      while (!Gdx.files.local("temp/$name").exists()) {
         Thread.sleep(100)
       }
 
@@ -436,22 +434,19 @@ fun versionsFromGitHub(): List<GameVersion> {
 }
 
 fun unpackGame(version: GameVersion) {
+  if (!Gdx.files.local("versions/${version.id}").exists()) {
+    Gdx.files.local("versions/${version.id}").mkdirs()
+  }
   if (System.getProperty("os.name").startsWith("Windows")) {
-    if (!Gdx.files.local("versions").exists()) {
-      Gdx.files.local("versions").mkdirs()
-    }
 
-    val exec = Runtime.getRuntime()
-      .exec(
-        arrayOf(
-          "powershell",
-          "Expand-Archive",
-          "-Path",
-          "temp/${version.id}.zip",
-          "-DestinationPath",
-          "temp/${version.id}-extract"
-        )
-      )
+    val exec = ProcessBuilder(
+      "powershell",
+      "Expand-Archive",
+      "-Path",
+      "temp/${version.id}.zip",
+      "-DestinationPath",
+      "temp/${version.id}-extract"
+    ).inheritIO().start()
 
     val waitFor =
       exec.waitFor()
@@ -470,17 +465,14 @@ fun unpackGame(version: GameVersion) {
     }
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val exec2 = Runtime.getRuntime()
-        .exec(
-          arrayOf(
-            "powershell",
-            "Move-Item",
-            "-Path",
-            Gdx.files.local("temp/${version.id}-extract").list()[0].toString(),
-            "-Destination",
-            "versions/${version.id}"
-          )
-        )
+      val exec2 = ProcessBuilder(
+        "powershell",
+        "Move-Item",
+        "-Path",
+        Gdx.files.local("temp/${version.id}-extract").list()[0].toString(),
+        "-Destination",
+        "versions/${version.id}"
+      ).inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -499,17 +491,14 @@ fun unpackGame(version: GameVersion) {
         return
       }
     } else {
-      val exec2 = Runtime.getRuntime()
-        .exec(
-          arrayOf(
-            "powershell",
-            "Move-Item",
-            "-Path",
-            "temp/${version.id}-extract",
-            "-Destination",
-            "versions/${version.id}"
-          )
-        )
+      val exec2 = ProcessBuilder(
+        "powershell",
+        "Move-Item",
+        "-Path",
+        "temp/${version.id}-extract",
+        "-Destination",
+        "versions/${version.id}"
+      ).inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -533,8 +522,7 @@ fun unpackGame(version: GameVersion) {
     if (!Gdx.files.local("versions/${version.id}").exists()) {
       Gdx.files.local("versions/${version.id}").mkdirs()
     }
-    val exec = Runtime.getRuntime()
-      .exec(arrayOf("tar", "-xvf", "temp/${version.id}", "-C", "temp/${version.id}-extract"))
+    val exec = ProcessBuilder("unzip", File("temp/${version.id}").absolutePath, "-d", "temp/${version.id}-extract").inheritIO().start()
     val waitFor =
       exec.waitFor()
 
@@ -546,8 +534,7 @@ fun unpackGame(version: GameVersion) {
     }
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val exec2 = Runtime.getRuntime()
-        .exec(arrayOf("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}"))
+      val exec2 = ProcessBuilder("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}").inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -559,8 +546,7 @@ fun unpackGame(version: GameVersion) {
         println("Failed to move ${version.id}")
       }
     } else {
-      val exec2 = Runtime.getRuntime()
-        .exec(arrayOf("mv", "temp/${version.id}-extract", "versions/${version.id}"))
+      val exec2 = ProcessBuilder("mv", File("temp/${version.id}-extract").absolutePath, "versions/${version.id}").inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -576,8 +562,7 @@ fun unpackGame(version: GameVersion) {
     if (!Gdx.files.local("temp/${version.id}-extract").exists()) {
       Gdx.files.local("temp/${version.id}-extract").mkdirs()
     }
-    val exec = Runtime.getRuntime()
-      .exec(arrayOf("tar", "-xvf", "temp/${version.id}", "-C", "temp/${version.id}-extract"))
+    val exec = ProcessBuilder("unzip", File("temp/${version.id}").absolutePath, "-d", "temp/${version.id}-extract").inheritIO().start()
     val waitFor =
       exec.waitFor()
 
@@ -589,11 +574,7 @@ fun unpackGame(version: GameVersion) {
     }
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val arrayOf =
-        arrayOf("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}")
-      println(arrayOf.contentToString())
-      val exec2 = Runtime.getRuntime()
-        .exec(arrayOf)
+      val exec2 = ProcessBuilder("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}").inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -605,8 +586,7 @@ fun unpackGame(version: GameVersion) {
         println("Failed to move ${version.id}")
       }
     } else {
-      val exec2 = Runtime.getRuntime()
-        .exec(arrayOf("mv", "temp/${version.id}-extract", "versions/${version.id}"))
+      val exec2 = ProcessBuilder("mv", "temp/${version.id}-extract", "versions/${version.id}").inheritIO().start()
 
       val waitFor2 =
         exec2.waitFor()
@@ -626,18 +606,14 @@ fun unpackGame(version: GameVersion) {
 fun unpack(path: String, dest: String): Int {
   Thread.sleep(1000)
 
-  if (!File(path).absoluteFile.exists()) {
+  if (!Gdx.files.local(path).exists()) {
     println("Failed to find $path")
     return -1
   }
 
-  if (!File(dest).absoluteFile.exists()) {
-    if (!File(dest).absoluteFile.mkdirs()) {
-      println("Failed to create $dest")
-      return -1
-    } else {
-      println("Created $dest")
-    }
+  if (!Gdx.files.local(dest).exists()) {
+    Gdx.files.local(dest).mkdirs()
+    println("Created $dest")
   } else {
     println("Found $dest")
   }
