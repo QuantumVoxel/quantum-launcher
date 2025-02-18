@@ -33,27 +33,27 @@ jobs:
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: launcher-package
+          name: win-x64
           path: lwjgl3/build/construo/winX64/roast
           retention-days: 1
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: launcher-package
+          name: linux-x64
           path: lwjgl3/build/construo/linuxX64/roast
           retention-days: 1
 
       - name: Upload macOS x64 Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: launcher-package
+          name: mac-x64
           path: lwjgl3/build/construo/macosX64/roast
           retention-days: 1
 
       - name: Upload macOS M1 Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: launcher-package
+          name: mac-m1
           path: lwjgl3/build/construo/macosM1/roast
           retention-days: 1

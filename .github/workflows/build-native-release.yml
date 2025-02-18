@@ -41,23 +41,23 @@ jobs:
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/construo/winX64/roast
+          files: client/build/construo/winX64
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/construo/linuxX64/roast
+          files: client/build/construo/linuxX64
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/construo/macX64/roast
+          files: client/build/construo/macX64
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: client/build/construo/macM1/roast
+          files: client/build/construo/macM1
           token: ${{ secrets.GITHUB_TOKEN }}
