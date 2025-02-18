@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import java.io.File
+import java.io.RandomAccessFile
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -23,15 +23,23 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.util.zip.GZIPInputStream
 import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
-import kotlin.io.path.absolute
-import kotlin.io.path.notExists
-import kotlin.io.path.readText
-import kotlin.io.path.relativeTo
+import kotlin.io.path.*
 
+
+private val userHome = System.getProperty("user.home")
+
+val root: Path by lazy {
+  when {
+    osName.startsWith("Windows") -> Paths.get(userHome, "AppData\\Roaming\\QuantumVoxel")
+    osName.startsWith("Linux") -> Paths.get(userHome, ".config/QuantumVoxel")
+    osName.startsWith("Mac") -> Paths.get(userHome, "Library/Application Support/QuantumVoxel")
+    else -> throw UnsupportedOperationException()
+  }
+}
 
 abstract class Widget(var x: Float = 0f, var y: Float = 0f, var width: Float = 20f, var height: Float = 20f) {
-  abstract fun render(batch: SpriteBatch, delta: Float)
 
+  abstract fun render(batch: SpriteBatch, delta: Float)
   fun set(x: Float? = null, y: Float? = null, width: Float? = null, height: Float? = null) {
     x?.let { this.x = it }
     y?.let { this.y = it }
@@ -68,6 +76,7 @@ class Button(
   private val ninePatchHoverPressedSelect: NinePatchDrawable =
     NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_hover_pressed_select.png")), 7, 7, 4, 6))
   private var wasPressed: Boolean = false
+
   private val pressed: Boolean
     get() {
       if (!enabled) return false
@@ -86,8 +95,8 @@ class Button(
 
       return false
     }
-
   var enabled: Boolean = true
+
   var selected: Boolean = false
 
   override fun render(batch: SpriteBatch, delta: Float) {
@@ -121,7 +130,6 @@ class Button(
     } else {
       ninePatch
     }
-
   private fun pressed() =
     if (Gdx.input.x / 2f > x && (Gdx.graphics.height - Gdx.input.y) / 2f > y && Gdx.input.x / 2f < x + width && (Gdx.graphics.height - Gdx.input.y) / 2f < y + height) {
       if (selected) ninePatchHoverPressedSelect else ninePatchHoverPressed
@@ -141,71 +149,81 @@ private fun BitmapFont.width(text: String): Float {
 
 var runningProcess: Process? = null
 
+private val osName = System.getProperty("os.name")
+
 private fun launchGame(version: GameVersion, button: Button): Process {
-  return if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-    if (System.getProperty("os.name").startsWith("Windows")) {
-      ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
-        environment()["PATH"] = "$JAVA_HOME\\bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
-    } else if (System.getProperty("os.name").startsWith("Linux")) {
-      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
-        environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
-    } else if (System.getProperty("os.name").startsWith("Mac")) {
-      ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
-        environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
-    } else {
+  if (path("versions/${version.id}/").notExists()) {
+    throw Exception("Version ${version.id} does not exist")
+  }
+
+  try {
+    return if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
+//      if (osName.startsWith("Windows")) {
+//        ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
+//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+//          directory(path("versions/${version.id}/").toFile())
+//        }.start()
+//      } else if (osName.startsWith("Linux")) {
+//        ProcessBuilder("bash", "-c", "chmod +x gradlew && chmod +x ./gradle/wrapper/gradle-wrapper.jar && ./gradlew --info --stacktrace --console=plain --no-daemon lwjgl3:run").run {
+//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+//          directory(path("versions/${version.id}/").toFile())
+//        }.start()
+//      } else if (osName.startsWith("Mac")) {
+//        ProcessBuilder("bash", "-c", "chmod +x gradlew && chmod +x ./gradle/wrapper/gradle-wrapper.jar && ./gradlew --info --stacktrace --console=plain --no-daemon lwjgl3:run").run {
+//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+//          directory(path("versions/${version.id}/").toFile())
+//        }.start()
+//      } else {
+//        throw UnsupportedOperationException()
+//      }
       throw UnsupportedOperationException()
-    }
-  } else {
-    if (System.getProperty("os.name").startsWith("Windows")) {
-      ProcessBuilder(
-        "$JAVA_HOME\\bin\\$JAVA_EXEC_NAME",
-        "-cp",
-        "lib/*",
-        "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
-      ).run {
-        environment()["PATH"] = "${File(JAVA_HOME).absolutePath}\\bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
-    } else if (System.getProperty("os.name").startsWith("Linux")) {
-      ProcessBuilder(
-        "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
-        "-cp",
-        "lib/*",
-        "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
-      ).run {
-        environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
-    } else if (System.getProperty("os.name").startsWith("Mac")) {
-      ProcessBuilder(
-        "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
-        "-XstartOnFirstThread",
-        "-cp",
-        "lib/*",
-        "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
-      ).run {
-        environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
-        environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/").absoluteFile)
-      }.inheritIO().start()
     } else {
-      throw UnsupportedOperationException()
+      if (osName.startsWith("Windows")) {
+        ProcessBuilder(
+          "$JAVA_HOME\\bin\\$JAVA_EXEC_NAME",
+          "-cp",
+          "lib/*",
+          "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
+        ).run {
+          environment()["PATH"] = "$JAVA_HOME\\bin:${System.getenv("PATH")}"
+          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+          directory(path("versions\\${version.id}/").toFile())
+        }.inheritIO().start()
+      } else if (osName.startsWith("Linux")) {
+        ProcessBuilder(
+          "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
+          "-cp",
+          "lib/*",
+          "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
+        ).run {
+          environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
+          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+          directory(path("versions/${version.id}/").toFile())
+        }.inheritIO().start()
+      } else if (osName.startsWith("Mac")) {
+        ProcessBuilder(
+          "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
+          "-XstartOnFirstThread",
+          "-cp",
+          "lib/*",
+          "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
+        ).run {
+          environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
+          environment()["JAVA_HOME"] = JAVA_HOME.toString()
+          directory(path("versions/${version.id}/").toFile())
+        }.inheritIO().start()
+      } else {
+        throw UnsupportedOperationException()
+      }
+    }.also {
+      button.text = "Click to Stop"
+      button.enabled = true
+      runningProcess = it
     }
-  }.also {
-    button.text = "Click to Stop"
-    button.enabled = true
-    runningProcess = it
+  } catch (e: Exception) {
+    Main.playButton.text = "Failed to launch game"
+    Main.playButton.enabled = false
+    throw e
   }
 }
 
@@ -222,12 +240,12 @@ fun download(
     val connection = URL(url).openConnection()
     totalBytes = if (connection.contentLengthLong == -1L) totalBytes else connection.contentLengthLong
 
-    if (!Files.exists(Paths.get("temp").absolute())) {
-      Files.createDirectories(Paths.get("temp").absolute())
+    if (path("temp").absolute().notExists()) {
+      path("temp").absolute().createDirectories()
     }
 
-    val absolute = Paths.get("temp/$name").absolute()
-    val file = Files.newOutputStream(absolute)
+    val absolute = path("temp/$name").absolute()
+    val file = absolute.outputStream()
 
     connection.inputStream.use { inputStream ->
       val buffer = ByteArray(1024)
@@ -248,18 +266,57 @@ fun download(
     }
 
     onComplete?.invoke(absolute.also {
-      println("Downloaded $url -> $it")
+      log("Downloaded $url -> $it")
     })
   }
 }
 
-private fun downloadGame(selectedVersion: GameVersion, button: Button, callback: () -> Unit) {
+val logFile = RandomAccessFile(path("log.txt").absolute().toString(), "rw").also {
+  it.seek(0)
+  it.setLength(0)
 
+  it.write("QuantumVoxel Launcher\n".toByteArray())
+
+  Runtime.getRuntime().addShutdownHook(Thread {
+    it.close()
+  })
+}
+
+fun log(text: String?) {
+  synchronized(logFile) {
+    logFile.seek(logFile.length())
+    logFile.write("INFO: $text\n".toByteArray())
+  }
+}
+
+fun log(text: Throwable) {
+  synchronized(logFile) {
+    logFile.seek(logFile.length())
+    logFile.write("ERROR: ${text.javaClass.name}: ${text.message}\n${text.stackTraceToString()}\n".toByteArray())
+  }
+}
+
+fun logError(text: String?) {
+  synchronized(logFile) {
+    logFile.seek(logFile.length())
+    logFile.write("ERROR: $text\n".toByteArray())
+  }
+}
+
+fun logError(text: Throwable) {
+  synchronized(logFile) {
+    logFile.seek(logFile.length())
+    logFile.write("ERROR: ${text.javaClass.name}: ${text.message}\n${text.stackTraceToString()}\n".toByteArray())
+  }
+}
+
+fun path(path: String): Path {
+  return root.resolve(path)
 }
 
 open class GameVersion(val id: String, val name: String, val gameUrl: String) {
   fun isDownloaded(): Boolean {
-    return Files.exists(Paths.get("versions/$id"))
+    return Files.exists(path("versions/$id"))
   }
 }
 
@@ -270,35 +327,35 @@ open class ChannelVersion(gameChannel: GameChannel) :
 
 const val VERSION_API = "https://api.github.com/repos/QuantumVoxel/game/releases"
 const val JDK_VERSION = "17.0.2_8"
-val JDK_URL = if (System.getProperty("os.name").startsWith("Windows")) {
+val JDK_URL = if (osName.startsWith("Windows")) {
   "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${
     JDK_VERSION.replace(
       "_",
       "%2B"
     )
   }/OpenJDK17U-jdk_x64_windows_hotspot_$JDK_VERSION.zip"
-} else if (System.getProperty("os.name").startsWith("Linux") && System.getProperty("os.arch") == "aarch64") {
+} else if (osName.startsWith("Linux") && System.getProperty("os.arch") == "aarch64") {
   "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${
     JDK_VERSION.replace(
       "_",
       "%2B"
     )
   }/OpenJDK17U-jdk_aarch64_linux_hotspot_$JDK_VERSION.tar.gz"
-} else if (System.getProperty("os.name").startsWith("Linux")) {
+} else if (osName.startsWith("Linux")) {
   "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${
     JDK_VERSION.replace(
       "_",
       "%2B"
     )
   }/OpenJDK17U-jdk_x64_linux_hotspot_$JDK_VERSION.tar.gz"
-} else if (System.getProperty("os.name").startsWith("Mac") && System.getProperty("os.arch") == "aarch64") {
+} else if (osName.startsWith("Mac") && System.getProperty("os.arch") == "aarch64") {
   "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${
     JDK_VERSION.replace(
       "_",
       "%2B"
     )
   }/OpenJDK17U-jdk_aarch64_mac_hotspot_$JDK_VERSION.tar.gz"
-} else if (System.getProperty("os.name").startsWith("Mac")) {
+} else if (osName.startsWith("Mac")) {
   "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${
     JDK_VERSION.replace(
       "_",
@@ -309,30 +366,29 @@ val JDK_URL = if (System.getProperty("os.name").startsWith("Windows")) {
   throw UnsupportedOperationException()
 }
 
-val JAVA_HOME = File(
-  if (System.getProperty("os.name").startsWith("Windows")) {
+val JAVA_HOME = path(if (osName.startsWith("Windows")) {
     "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
-  } else if (System.getProperty("os.name").startsWith("Linux")) {
+  } else if (osName.startsWith("Linux")) {
     "jdk/jdk-${JDK_VERSION.replace("_", "+")}"
-  } else if (System.getProperty("os.name").startsWith("Mac")) {
+  } else if (osName.startsWith("Mac")) {
     "jdk/jdk-${JDK_VERSION.replace("_", "+")}/Contents/Home"
   } else {
     throw UnsupportedOperationException()
   }
-).absolutePath
+)
 
-val JAVA_EXEC_NAME = if (System.getProperty("os.name").startsWith("Windows")) {
+val JAVA_EXEC_NAME = if (osName.startsWith("Windows")) {
   "javaw.exe"
-} else if (System.getProperty("os.name").startsWith("Linux")) {
+} else if (osName.startsWith("Linux")) {
   "java"
-} else if (System.getProperty("os.name").startsWith("Mac")) {
+} else if (osName.startsWith("Mac")) {
   "java"
 } else {
   throw UnsupportedOperationException()
 }
 
-var cachedReleases: JsonValue? = if (Files.exists(Paths.get("releases.json"))) {
-  JsonReader().parse(Paths.get("releases.json").readText())
+var cachedReleases: JsonValue? = if (Files.exists(path("releases.json"))) {
+  JsonReader().parse(path("releases.json").readText())
 } else {
   null
 }
@@ -341,7 +397,7 @@ fun versionsFromGitHub(): List<GameVersion> {
   val list = mutableListOf<GameVersion>()
   val cache = cachedReleases
   if (cache != null && cache["cache_time"].asLong() + 600 * 1000 > System.currentTimeMillis()) {
-    for (i in 0 until cache["releases"].size()) {
+    for (i in 0 until cache["releases"].size) {
       if (cache["releases"][i]["tag_name"].asString() in arrayOf("0.0.0-indev", "0.0.1-indev")) {
         list.add(
           GameVersion(
@@ -363,14 +419,14 @@ fun versionsFromGitHub(): List<GameVersion> {
     return list
   }
 
-  println("Fetching versions from GitHub...")
+  log("Fetching versions from GitHub...")
 
   try {
 
     val readText = URL(VERSION_API).readText()
     val json = JsonReader().parse(readText)
 
-    for (i in 0 until json.size()) {
+    for (i in 0 until json.size) {
       if (json[i]["tag_name"].asString() in arrayOf("0.0.0-indev", "0.0.1-indev")) {
         list.add(
           GameVersion(
@@ -395,13 +451,13 @@ fun versionsFromGitHub(): List<GameVersion> {
       addChild("cache_time", JsonValue(System.currentTimeMillis().toString()))
 
 
-      Files.writeString(Paths.get("releases.json"), this.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+      Files.writeString(path("releases.json"), this.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
   } catch (e: Exception) {
-    println("Failed to fetch versions from GitHub: ${e.message}")
+    log("Failed to fetch versions from GitHub: ${e.message}")
 
     if (cache != null) {
-      for (i in 0 until cache["releases"].size()) {
+      for (i in 0 until cache["releases"].size) {
         if (cache["releases"][i]["tag_name"].asString() in arrayOf("0.0.0-indev", "0.0.1-indev")) {
           list.add(
             GameVersion(
@@ -429,17 +485,17 @@ fun versionsFromGitHub(): List<GameVersion> {
 }
 
 fun unpackGame(version: GameVersion): Int {
-  val unpacked = unpackZip(Paths.get("temp/${version.id}").absolute(), Paths.get("temp/${version.id}-extract").absolute())
+  val unpacked = unpackZip(path("temp/${version.id}").absolute(), path("temp/${version.id}-extract").absolute())
   if (unpacked != 0) {
     return 1
   }
 
   if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-    if (move(Files.list(Paths.get("temp/${version.id}-extract").absolute()).findFirst().orElseThrow(), Paths.get("versions/${version.id}").absolute()) != 0) {
+    if (move(Files.list(path("temp/${version.id}-extract").absolute()).findFirst().orElseThrow(), path("versions/${version.id}").absolute()) != 0) {
       return 1
     }
   } else {
-    if (move(Paths.get("temp/${version.id}-extract").absolute(), Paths.get("versions/${version.id}").absolute()) != 0) {
+    if (move(path("temp/${version.id}-extract").absolute(), path("versions/${version.id}").absolute()) != 0) {
       return 1
     }
   }
@@ -449,21 +505,21 @@ fun unpackGame(version: GameVersion): Int {
 
 fun unpack(path: Path, dest: Path): Int {
   if (Files.notExists(path)) {
-    println("Failed to find $path")
+    log("Failed to find $path")
     return -1
   }
 
   if (Files.notExists(dest)) {
     Files.createDirectories(dest)
-    println("Created $dest")
+    log("Created $dest")
   } else {
-    println("Found $dest")
+    log("Found $dest")
   }
-  return if (System.getProperty("os.name").startsWith("Windows")) {
+  return if (osName.startsWith("Windows")) {
     unpackZip(path, dest)
-  } else if (System.getProperty("os.name").startsWith("Linux")) {
+  } else if (osName.startsWith("Linux")) {
     unpackTarGZ(path, dest)
-  } else if (System.getProperty("os.name").startsWith("Mac")) {
+  } else if (osName.startsWith("Mac")) {
     unpackTarGZ(path, dest)
   } else {
     throw UnsupportedOperationException()
@@ -472,12 +528,12 @@ fun unpack(path: Path, dest: Path): Int {
 
 fun move(path: Path, dest: Path): Int {
   if (Files.notExists(path)) {
-    println("Failed to find $path")
+    log("Failed to find $path")
     return 1
   }
 
   if (Files.exists(dest)) {
-    println("Failed to move $path to $dest, $dest already exists")
+    log("Failed to move $path to $dest, $dest already exists")
     return 1
   }
 
@@ -493,18 +549,18 @@ fun move(path: Path, dest: Path): Int {
 
 fun unpackZip(path: Path, dest: Path, subFolder: String = ""): Int {
   if (Files.notExists(path)) {
-    println("Failed to find $path")
+    log("Failed to find $path")
     return -1
   }
 
   if (Files.notExists(dest)) {
     Files.createDirectories(dest)
-    println("Created $dest")
+    log("Created $dest")
   } else {
-    println("Found $dest")
+    log("Found $dest")
   }
 
-  println("Extracting (zip) $path!/ -> $dest")
+  log("Extracting (zip) $path!/ -> $dest")
 
   ZipInputStream(Files.newInputStream(path)).use { zipStream ->
     try {
@@ -516,7 +572,7 @@ fun unpackZip(path: Path, dest: Path, subFolder: String = ""): Int {
         }
 
         val file = dest.resolve(entry.name.substringAfter(subFolder))
-        println("Extracting $path!/${entry.name} -> $file")
+        log("Extracting $path!/${entry.name} -> $file")
         if (entry.isDirectory) {
           Files.createDirectories(file)
         } else {
@@ -540,27 +596,27 @@ fun unpackZip(path: Path, dest: Path, subFolder: String = ""): Int {
 
 fun unpackTarGZ(path: Path, dest: Path): Int {
   if (Files.notExists(path)) {
-    println("Failed to find $path")
+    log("Failed to find $path")
     return -1
   }
 
   if (Files.notExists(dest)) {
     Files.createDirectories(dest)
-    println("Created $dest")
+    log("Created $dest")
   } else {
-    println("Found $dest")
+    log("Found $dest")
   }
 
-  println("Extracting (tar.gz) $path!/ -> $dest")
+  log("Extracting (tar.gz) $path!/ -> $dest")
 
   try {
     GZIPInputStream(Files.newInputStream(path)).use { gzipStream ->
-      println("Extracting (tar) $path!/!/ -> $dest")
+      log("Extracting (tar) $path!/!/ -> $dest")
 
       try {
         val also = unpackTar(gzipStream, dest, path).also {
           if (it == 0) {
-            println("Extracted (tar) $path!/!/ -> $dest")
+            log("Extracted (tar) $path!/!/ -> $dest")
           }
         }
         if (also != 0) {
@@ -576,7 +632,7 @@ fun unpackTarGZ(path: Path, dest: Path): Int {
     return 1
   }
 
-  println("Extracted (tar.gz) $path!/ -> $dest")
+  log("Extracted (tar.gz) $path!/ -> $dest")
 
   return 0
 }
@@ -586,14 +642,15 @@ private fun unpackTar(gzipStream: GZIPInputStream, dest: Path, path: Path): Int 
     try {
       var entry = tarStream.nextEntry
       while (entry != null) {
-        val file = Gdx.files.local("$dest/${entry.name}")
-        println("Extracting $path!/!/${entry.name} -> ${file.path()}")
+        val file = path("$dest/${entry.name}")
+        log("Extracting $path!/!/${entry.name} -> $file")
         if (entry.isDirectory) {
-          file.mkdirs()
+          Files.createDirectories(file)
         } else {
-          if (!file.parent().exists())
-            file.parent().mkdirs()
-          file.write(false).use { output ->
+          if (Files.notExists(file.parent))
+            Files.createDirectories(file.parent)
+
+          Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { output ->
             tarStream.copyTo(output)
           }
         }
@@ -617,7 +674,7 @@ fun killProcess(process: Process) {
     }
     process.waitFor()
   } catch (e: Exception) {
-    println(e.message)
+    log(e.message)
   }
 }
 
@@ -633,6 +690,7 @@ object Main : ApplicationAdapter() {
 
   private var triedDestoyingOnce = false
 
+  @OptIn(ExperimentalPathApi::class)
   val playButton by lazy {
     Button(font, callback = {
       val runningProcess1 = runningProcess
@@ -640,7 +698,7 @@ object Main : ApplicationAdapter() {
         try {
           killProcess(runningProcess1)
         } catch (e: Exception) {
-          println(e.message)
+          log(e.message)
         }
         return@Button
       }
@@ -651,11 +709,11 @@ object Main : ApplicationAdapter() {
       enabled = false
 
       if (version is ChannelVersion) {
-        File("versions/${version.id}").deleteRecursively()
+        path("versions/${version.id}").deleteRecursively()
       }
 
       if (!version.isDownloaded()) {
-        val name = version.id + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ""
+        val name = version.id + if (osName.startsWith("Windows")) ".zip" else ""
         download(version.gameUrl, name, onProgress = { text = "Downloading Game (${(it * 100).toInt()}%)" }) {
           text = "Extracting Game"
           unpackGame(version)
@@ -681,8 +739,10 @@ object Main : ApplicationAdapter() {
 
   private val availableVersions by lazy {
     val list = mutableListOf<GameVersion>()
-    list += channels.map { ChannelVersion(it) }
-    list += versionsFromGitHub()
+//    list += channels.map { ChannelVersion(it) }
+    list += versionsFromGitHub().filter {
+      it.id != "0.0.0-indev" && it.id != "0.0.1-indev" && it.id != "0.0.2-indev" && it.id != "0.0.3-indev"
+    }
     list
   }
 
@@ -718,18 +778,18 @@ object Main : ApplicationAdapter() {
       versionButtons[0].selected = true
     }
 
-    File("versions").absoluteFile.mkdirs()
-    File("temp").absoluteFile.mkdirs()
+    path("versions").createDirectories()
+    path("temp").createDirectories()
 
     playButton.text = "Play"
-    if (!File("jdk").absoluteFile.exists()) {
+    if (path("jdk").notExists()) {
       playButton.enabled = false
 
       download(JDK_URL, "jdk.tmp", onProgress = {
         playButton.text = "Downloading JDK (${(it * 100).toInt()}%)"
       }) {
         playButton.text = "Extracting JDK"
-        if (unpack(it, Paths.get("jdk")) != 0) {
+        if (unpack(it, path("jdk")) != 0) {
           playButton.enabled = false
           playButton.text = "Failed to unpack JDK"
 
@@ -738,13 +798,13 @@ object Main : ApplicationAdapter() {
 
         Thread.sleep(10000)
 
-        if (!System.getProperty("os.name").startsWith("Windows")) {
+        if (!osName.startsWith("Windows")) {
           playButton.text = "Setting permissions"
 
-          val folder: Path = Paths.get("$JAVA_HOME/bin").absolute()
+          val folder: Path = path("$JAVA_HOME/bin").absolute()
           Files.newDirectoryStream(folder).use { stream ->
             for (file in stream) {
-              println("Setting permissions for ${file.absolute()}")
+              log("Setting permissions for ${file.absolute()}")
               Files.setAttribute(file.absolute(), "posix:permissions", PosixFilePermissions.fromString("rwxr-xr-x"))
             }
           }
@@ -796,7 +856,7 @@ object Main : ApplicationAdapter() {
       field = value
     }
 
-  val maxScrollY
+  private val maxScrollY
     get() = maxOf(
       20f * (availableVersions.size - 1) - height + 20f,
       0f
