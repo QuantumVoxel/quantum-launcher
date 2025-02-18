@@ -48,12 +48,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-x64
-          path: lwjgl3/build/construo/macosX64/roast
+          path: lwjgl3/build/construo/macX64/roast
           retention-days: 1
 
       - name: Upload macOS M1 Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mac-m1
-          path: lwjgl3/build/construo/macosM1/roast
+          path: lwjgl3/build/construo/macM1/roast
           retention-days: 1
