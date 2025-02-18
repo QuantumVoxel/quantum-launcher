@@ -429,29 +429,31 @@ fun unpackGame(version: GameVersion) {
       Gdx.files.local("versions").mkdirs()
     }
 
-    ZipFile(Gdx.files.local("temp/${version.id}").file()).use { zip ->
-      if (!Gdx.files.local("versions/${version.id}").exists()) {
-        Gdx.files.local("versions/${version.id}").mkdirs()
+    val exec = Runtime.getRuntime()
+      .exec(arrayOf("powershell", "Expand-Archive", "-Path", "temp/${version.id}", "-DestinationPath", "versions/${version.id}"))
+
+    val waitFor =
+      exec.waitFor()
+
+    if (waitFor != 0) {
+      for (i in 0 until exec.errorStream.available()) {
+        print(exec.errorStream.read().toChar())
       }
-      zip.entries().asSequence().forEach { entry ->
-        zip.getInputStream(entry).use { inputStream ->
-          if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-            if (!Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent()
-                .exists()
-            ) {
-              Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}").parent().mkdirs()
-            }
-            Gdx.files.local("versions/${version.id}/${entry.name.substringAfter('/')}")
-              .write(inputStream, false)
-          } else {
-            if (!Gdx.files.local("temp/${version.id}-extract").exists()) {
-              Gdx.files.local("temp/${version.id}-extract").mkdirs()
-            }
-            Gdx.files.local("temp/${version.id}-extract/${entry.name.substringAfter('/')}").parent().mkdirs()
-            Gdx.files.local("temp/${version.id}-extract/${entry.name.substringAfter('/')}")
-              .write(inputStream, false)
-          }
+      println("Failed to unpack ${version.id}")
+    }
+
+    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
+      val exec2 = Runtime.getRuntime()
+        .exec(arrayOf("powershell", "Move-Item", "-Path", "versions/${version.id}/*", "-Destination", "versions/${version.id}"))
+
+      val waitFor2 =
+        exec2.waitFor()
+
+      if (waitFor2 != 0) {
+        for (i in 0 until exec2.errorStream.available()) {
+          print(exec2.errorStream.read().toChar())
         }
+        println("Failed to move ${version.id}")
       }
     }
   } else if (System.getProperty("os.name").startsWith("Linux")) {
