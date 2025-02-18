@@ -228,6 +228,12 @@ class Downloader(
       }
 
       file.close()
+
+      // Wait for the file to be found (some random issue on macOS cause the file not to be found immediately)
+      while (!File("temp/$name").exists()) {
+        Thread.sleep(100)
+      }
+
       onComplete?.invoke()
     }
   }
@@ -617,19 +623,71 @@ fun unpackGame(version: GameVersion) {
   }
 }
 
-fun unpack(path: String, dest: String) {
-  if (System.getProperty("os.name").startsWith("Windows")) {
-    Runtime.getRuntime().exec(arrayOf("powershell", "Expand-Archive", "-Path", path, "-DestinationPath", dest)).waitFor()
+fun unpack(path: String, dest: String): Int {
+  Thread.sleep(1000)
+
+  if (!File(path).absoluteFile.exists()) {
+    println("Failed to find $path")
+    return -1
+  }
+
+  if (!File(dest).absoluteFile.exists()) {
+    if (!File(dest).absoluteFile.mkdirs()) {
+      println("Failed to create $dest")
+      return -1
+    } else {
+      println("Created $dest")
+    }
+  } else {
+    println("Found $dest")
+  }
+  return if (System.getProperty("os.name").startsWith("Windows")) {
+    val exec = ProcessBuilder(
+      "powershell",
+      "Expand-Archive",
+      "-Path",
+      File(path).absolutePath,
+      "-DestinationPath",
+      File(dest).absolutePath
+    ).inheritIO().start()
+
+    val waitFor =
+      exec.waitFor()
+
+    if (waitFor != 0) {
+      for (i in 0 until exec.errorStream.available()) {
+        print(exec.errorStream.read().toChar())
+      }
+      println("Failed to unpack ${path}")
+
+      JOptionPane.showMessageDialog(null, "Failed to unpack $path", "Error", JOptionPane.ERROR_MESSAGE)
+      Main.playButton.text = "Play"
+      Main.playButton.enabled = true
+    }
+
+    waitFor
   } else if (System.getProperty("os.name").startsWith("Linux")) {
-    if (!File(dest).exists()) {
-      File(dest).mkdirs()
+    val exec = ProcessBuilder("tar", "-xvf", File(path).absolutePath, "-C", File(dest).absolutePath).inheritIO().start()
+
+    val waitFor =
+      exec.waitFor()
+
+    if (waitFor != 0) {
+      println("Failed to unpack $path")
     }
-    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest)).waitFor()
+
+    waitFor
   } else if (System.getProperty("os.name").startsWith("Mac")) {
-    if (!File(dest).exists()) {
-      File(dest).mkdirs()
+    val exec = ProcessBuilder("tar", "-xvf", File(path).absolutePath, "-C", File(dest).absolutePath).inheritIO().start()
+
+    val waitFor =
+      exec.waitFor()
+
+    if (waitFor != 0) {
+      println("Failed to unpack $path")
     }
-    Runtime.getRuntime().exec(arrayOf("tar", "-xf", path, "-C", dest)).waitFor()
+
+    waitFor
   } else {
     throw UnsupportedOperationException()
   }
@@ -748,10 +806,10 @@ object Main : ApplicationAdapter() {
     playButton.text = "Play"
     if (!File("jdk").exists()) {
       playButton.enabled = false
-      download(JDK_URL, "jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ".tar.gz", onProgress = {
+      download(JDK_URL, "jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "", onProgress = {
         playButton.text = "Downloading JDK (${(it * 100).toInt()}%)"
       }) {
-        unpack("temp/jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ".tar.gz", "jdk")
+        unpack("temp/jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "", "jdk")
 
         playButton.enabled = true
         playButton.text = "Play"
