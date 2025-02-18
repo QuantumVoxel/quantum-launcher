@@ -14,12 +14,10 @@ import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import java.io.File
-import java.io.RandomAccessFile
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.zip.GZIPInputStream
@@ -28,7 +26,7 @@ import kotlin.concurrent.thread
 import kotlin.io.path.absolute
 import kotlin.io.path.notExists
 import kotlin.io.path.readText
-import kotlin.streams.asSequence
+import kotlin.io.path.relativeTo
 
 
 abstract class Widget(var x: Float = 0f, var y: Float = 0f, var width: Float = 20f, var height: Float = 20f) {
@@ -149,19 +147,19 @@ private fun launchGame(version: GameVersion, button: Button): Process {
       ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME\\bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Linux")) {
       ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Mac")) {
       ProcessBuilder("bash", "-c", "chmod +x gradlew && ./gradlew --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = JAVA_HOME
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else {
       throw UnsupportedOperationException()
@@ -176,7 +174,7 @@ private fun launchGame(version: GameVersion, button: Button): Process {
       ).run {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}\\bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Linux")) {
       ProcessBuilder(
@@ -187,7 +185,7 @@ private fun launchGame(version: GameVersion, button: Button): Process {
       ).run {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else if (System.getProperty("os.name").startsWith("Mac")) {
       ProcessBuilder(
@@ -199,7 +197,7 @@ private fun launchGame(version: GameVersion, button: Button): Process {
       ).run {
         environment()["PATH"] = "${File(JAVA_HOME).absolutePath}/bin:${System.getenv("PATH")}"
         environment()["JAVA_HOME"] = File(JAVA_HOME).absolutePath
-        directory(File("versions/${version.id}/"))
+        directory(File("versions/${version.id}/").absoluteFile)
       }.inheritIO().start()
     } else {
       throw UnsupportedOperationException()
@@ -228,7 +226,8 @@ fun download(
       Files.createDirectories(Paths.get("temp").absolute())
     }
 
-    val file = RandomAccessFile(File("temp/$name").absolutePath, "rw")
+    val absolute = Paths.get("temp/$name").absolute()
+    val file = Files.newOutputStream(absolute)
 
     connection.inputStream.use { inputStream ->
       val buffer = ByteArray(1024)
@@ -240,14 +239,15 @@ fun download(
       }
     }
 
+    file.flush()
     file.close()
 
     // Wait for the file to be found (some random issue on macOS cause the file not to be found immediately)
-    while (Paths.get("temp/$name").absolute().notExists()) {
+    while (absolute.notExists()) {
       Thread.sleep(100)
     }
 
-    onComplete?.invoke(Paths.get("temp/$name").absolute().also {
+    onComplete?.invoke(absolute.also {
       println("Downloaded $url -> $it")
     })
   }
@@ -429,17 +429,17 @@ fun versionsFromGitHub(): List<GameVersion> {
 }
 
 fun unpackGame(version: GameVersion): Int {
-  val unpacked = unpackZip("temp/${version.id}", "temp/${version.id}-extract")
+  val unpacked = unpackZip(Paths.get("temp/${version.id}").absolute(), Paths.get("temp/${version.id}-extract").absolute())
   if (unpacked != 0) {
     return 1
   }
 
   if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-    if (move(Files.list(Paths.get("temp/${version.id}-extract")).findFirst().orElseThrow().toString(), "versions/${version.id}") != 0) {
+    if (move(Files.list(Paths.get("temp/${version.id}-extract").absolute()).findFirst().orElseThrow(), Paths.get("versions/${version.id}").absolute()) != 0) {
       return 1
     }
   } else {
-    if (move("temp/${version.id}-extract", "versions/${version.id}") != 0) {
+    if (move(Paths.get("temp/${version.id}-extract").absolute(), Paths.get("versions/${version.id}").absolute()) != 0) {
       return 1
     }
   }
@@ -447,14 +447,14 @@ fun unpackGame(version: GameVersion): Int {
   return 0
 }
 
-fun unpack(path: String, dest: String): Int {
-  if (!Gdx.files.local(path).exists()) {
+fun unpack(path: Path, dest: Path): Int {
+  if (Files.notExists(path)) {
     println("Failed to find $path")
     return -1
   }
 
-  if (!Gdx.files.local(dest).exists()) {
-    Gdx.files.local(dest).mkdirs()
+  if (Files.notExists(dest)) {
+    Files.createDirectories(dest)
     println("Created $dest")
   } else {
     println("Found $dest")
@@ -470,19 +470,19 @@ fun unpack(path: String, dest: String): Int {
   }
 }
 
-fun move(path: String, dest: String): Int {
-  if (!Gdx.files.local(path).exists()) {
+fun move(path: Path, dest: Path): Int {
+  if (Files.notExists(path)) {
     println("Failed to find $path")
     return 1
   }
 
-  if (Gdx.files.local(dest).exists()) {
+  if (Files.exists(dest)) {
     println("Failed to move $path to $dest, $dest already exists")
     return 1
   }
 
   try {
-    Files.move(Paths.get(path), Paths.get(dest))
+    Files.move(path, dest)
   } catch (e: Exception) {
     e.printStackTrace()
     return 1
@@ -491,35 +491,22 @@ fun move(path: String, dest: String): Int {
   return 0
 }
 
-fun rename(path: String, newName: String): Int {
-  if (!Gdx.files.local(path).exists()) {
-    println("Failed to find $path")
-    return 1
-  }
-
-  try {
-    Files.move(Paths.get(path), Paths.get(newName), StandardCopyOption.ATOMIC_MOVE)
-  } catch (e: Exception) {
-    e.printStackTrace()
-    return 1
-  }
-
-  return 0
-}
-
-fun unpackZip(path: String, dest: String, subFolder: String = ""): Int {
-  if (!Gdx.files.local(path).exists()) {
+fun unpackZip(path: Path, dest: Path, subFolder: String = ""): Int {
+  if (Files.notExists(path)) {
     println("Failed to find $path")
     return -1
   }
 
-  if (!Gdx.files.local(dest).exists()) {
-    Gdx.files.local(dest).mkdirs()
+  if (Files.notExists(dest)) {
+    Files.createDirectories(dest)
+    println("Created $dest")
+  } else {
+    println("Found $dest")
   }
 
   println("Extracting (zip) $path!/ -> $dest")
 
-  ZipInputStream(Gdx.files.local(path).read()).use { zipStream ->
+  ZipInputStream(Files.newInputStream(path)).use { zipStream ->
     try {
       var entry = zipStream.nextEntry
       while (entry != null) {
@@ -528,14 +515,15 @@ fun unpackZip(path: String, dest: String, subFolder: String = ""): Int {
           continue
         }
 
-        val file = Gdx.files.local("$dest/${entry.name.substringAfter(subFolder)}")
-        println("Extracting $path!/${entry.name} -> ${file.path()}")
+        val file = dest.resolve(entry.name.substringAfter(subFolder))
+        println("Extracting $path!/${entry.name} -> $file")
         if (entry.isDirectory) {
-          file.mkdirs()
+          Files.createDirectories(file)
         } else {
-          if (!file.parent().exists())
-            file.parent().mkdirs()
-          file.write(false).use { output ->
+          if (Files.notExists(file.parent))
+            Files.createDirectories(file.parent)
+
+          Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { output ->
             zipStream.copyTo(output)
           }
         }
@@ -550,20 +538,23 @@ fun unpackZip(path: String, dest: String, subFolder: String = ""): Int {
   return 0
 }
 
-fun unpackTarGZ(path: String, dest: String): Int {
-  if (!Gdx.files.local(path).exists()) {
+fun unpackTarGZ(path: Path, dest: Path): Int {
+  if (Files.notExists(path)) {
     println("Failed to find $path")
     return -1
   }
 
-  if (!Gdx.files.local(dest).exists()) {
-    Gdx.files.local(dest).mkdirs()
+  if (Files.notExists(dest)) {
+    Files.createDirectories(dest)
+    println("Created $dest")
+  } else {
+    println("Found $dest")
   }
 
   println("Extracting (tar.gz) $path!/ -> $dest")
 
   try {
-    GZIPInputStream(Gdx.files.local(path).read()).use { gzipStream ->
+    GZIPInputStream(Files.newInputStream(path)).use { gzipStream ->
       println("Extracting (tar) $path!/!/ -> $dest")
 
       try {
@@ -590,7 +581,7 @@ fun unpackTarGZ(path: String, dest: String): Int {
   return 0
 }
 
-private fun unpackTar(gzipStream: GZIPInputStream, dest: String, path: String): Int {
+private fun unpackTar(gzipStream: GZIPInputStream, dest: Path, path: Path): Int {
   TarArchiveInputStream(gzipStream).use { tarStream ->
     try {
       var entry = tarStream.nextEntry
@@ -669,7 +660,6 @@ object Main : ApplicationAdapter() {
           text = "Extracting Game"
           unpackGame(version)
 
-          File("temp").deleteRecursively()
           text = "Launching ${version.name}"
           launchGame(version, this)
         }
@@ -739,7 +729,7 @@ object Main : ApplicationAdapter() {
         playButton.text = "Downloading JDK (${(it * 100).toInt()}%)"
       }) {
         playButton.text = "Extracting JDK"
-        if (unpack(it.toString(), Paths.get("jdk").toString()) != 0) {
+        if (unpack(it, Paths.get("jdk")) != 0) {
           playButton.enabled = false
           playButton.text = "Failed to unpack JDK"
 
