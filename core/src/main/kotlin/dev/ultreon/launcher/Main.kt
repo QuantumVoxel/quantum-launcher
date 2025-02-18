@@ -12,11 +12,24 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.URL
-import javax.swing.JOptionPane
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermissions
+import java.util.zip.GZIPInputStream
+import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
+import kotlin.io.path.absolute
+import kotlin.io.path.notExists
+import kotlin.io.path.readText
+import kotlin.streams.asSequence
+
 
 abstract class Widget(var x: Float = 0f, var y: Float = 0f, var width: Float = 20f, var height: Float = 20f) {
   abstract fun render(batch: SpriteBatch, delta: Float)
@@ -130,8 +143,8 @@ private fun BitmapFont.width(text: String): Float {
 
 var runningProcess: Process? = null
 
-private fun launchGame(version: GameVersion, button: Button): Process =
-  if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
+private fun launchGame(version: GameVersion, button: Button): Process {
+  return if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
     if (System.getProperty("os.name").startsWith("Windows")) {
       ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
         environment()["PATH"] = "$JAVA_HOME\\bin:${System.getenv("PATH")}"
@@ -179,6 +192,7 @@ private fun launchGame(version: GameVersion, button: Button): Process =
     } else if (System.getProperty("os.name").startsWith("Mac")) {
       ProcessBuilder(
         "$JAVA_HOME/bin/$JAVA_EXEC_NAME",
+        "-XstartOnFirstThread",
         "-cp",
         "lib/*",
         "dev.ultreon.quantum.lwjgl3.Lwjgl3Launcher"
@@ -195,76 +209,57 @@ private fun launchGame(version: GameVersion, button: Button): Process =
     button.enabled = true
     runningProcess = it
   }
-
-class Downloader(
-  private val url: String,
-  private val name: String,
-  private var totalBytes: Long = 0,
-  private val onProgress: ((Float) -> Unit)? = null,
-  private val onComplete: (() -> Unit)? = null
-) {
-  fun download() {
-    var downloadedBytes: Long = 0
-    thread(isDaemon = false) {
-      val connection = URL(url).openConnection()
-      totalBytes = if (connection.contentLengthLong == -1L) totalBytes else connection.contentLengthLong
-
-      if (!Gdx.files.local("temp").exists()) {
-        Gdx.files.local("temp").mkdirs()
-      }
-
-      val file = RandomAccessFile(Gdx.files.local("temp/$name").file(), "rw")
-
-      connection.inputStream.use { inputStream ->
-        val buffer = ByteArray(1024)
-        var read: Int
-        while (inputStream.read(buffer).also { read = it } != -1) {
-          file.write(buffer, 0, read)
-          downloadedBytes += read
-          onProgress?.invoke(if (totalBytes == 0L) 0f else downloadedBytes.toFloat() / totalBytes)
-        }
-      }
-
-      file.close()
-
-      // Wait for the file to be found (some random issue on macOS cause the file not to be found immediately)
-      while (!Gdx.files.local("temp/$name").exists()) {
-        Thread.sleep(100)
-      }
-
-      onComplete?.invoke()
-    }
-  }
 }
 
 fun download(
   url: String,
   name: String,
-  totalBytes: Long = 0,
+  expectedBytes: Long = 0,
   onProgress: ((Float) -> Unit)? = null,
-  onComplete: (() -> Unit)? = null
-): Downloader {
-  return Downloader(url, name, totalBytes, onProgress, onComplete).also {
-    it.download()
+  onComplete: ((Path) -> Unit)? = null
+) {
+  var totalBytes: Long = expectedBytes
+  var downloadedBytes: Long = 0
+  thread(isDaemon = false) {
+    val connection = URL(url).openConnection()
+    totalBytes = if (connection.contentLengthLong == -1L) totalBytes else connection.contentLengthLong
+
+    if (!Files.exists(Paths.get("temp").absolute())) {
+      Files.createDirectories(Paths.get("temp").absolute())
+    }
+
+    val file = RandomAccessFile(File("temp/$name").absolutePath, "rw")
+
+    connection.inputStream.use { inputStream ->
+      val buffer = ByteArray(1024)
+      var read: Int
+      while (inputStream.read(buffer).also { read = it } != -1) {
+        file.write(buffer, 0, read)
+        downloadedBytes += read
+        onProgress?.invoke(if (totalBytes == 0L) 0f else downloadedBytes.toFloat() / totalBytes)
+      }
+    }
+
+    file.close()
+
+    // Wait for the file to be found (some random issue on macOS cause the file not to be found immediately)
+    while (Paths.get("temp/$name").absolute().notExists()) {
+      Thread.sleep(100)
+    }
+
+    onComplete?.invoke(Paths.get("temp/$name").absolute().also {
+      println("Downloaded $url -> $it")
+    })
   }
 }
 
 private fun downloadGame(selectedVersion: GameVersion, button: Button, callback: () -> Unit) {
-  download(
-    selectedVersion.gameUrl,
-    selectedVersion.id + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "",
-    onProgress = {
-      button.text = "Downloading Game (${(it * 100).toInt()}%)"
-    }) {
-    button.text = "Unpacking Game"
-    unpackGame(selectedVersion)
-    callback()
-  }
+
 }
 
 open class GameVersion(val id: String, val name: String, val gameUrl: String) {
   fun isDownloaded(): Boolean {
-    return Gdx.files.local("versions/$id").exists()
+    return Files.exists(Paths.get("versions/$id"))
   }
 }
 
@@ -336,8 +331,8 @@ val JAVA_EXEC_NAME = if (System.getProperty("os.name").startsWith("Windows")) {
   throw UnsupportedOperationException()
 }
 
-var cachedReleases: JsonValue? = if (Gdx.files.local("releases.json").exists()) {
-  JsonReader().parse(Gdx.files.local("releases.json").readString())
+var cachedReleases: JsonValue? = if (Files.exists(Paths.get("releases.json"))) {
+  JsonReader().parse(Paths.get("releases.json").readText())
 } else {
   null
 }
@@ -400,7 +395,7 @@ fun versionsFromGitHub(): List<GameVersion> {
       addChild("cache_time", JsonValue(System.currentTimeMillis().toString()))
 
 
-      Gdx.files.local("releases.json").writeString(this.toString(), false)
+      Files.writeString(Paths.get("releases.json"), this.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
   } catch (e: Exception) {
     println("Failed to fetch versions from GitHub: ${e.message}")
@@ -433,179 +428,26 @@ fun versionsFromGitHub(): List<GameVersion> {
   return list
 }
 
-fun unpackGame(version: GameVersion) {
-  if (!Gdx.files.local("versions/${version.id}").exists()) {
-    Gdx.files.local("versions/${version.id}").mkdirs()
+fun unpackGame(version: GameVersion): Int {
+  val unpacked = unpackZip("temp/${version.id}", "temp/${version.id}-extract")
+  if (unpacked != 0) {
+    return 1
   }
-  if (System.getProperty("os.name").startsWith("Windows")) {
 
-    val exec = ProcessBuilder(
-      "powershell",
-      "Expand-Archive",
-      "-Path",
-      "temp/${version.id}.zip",
-      "-DestinationPath",
-      "temp/${version.id}-extract"
-    ).inheritIO().start()
-
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      var text = ""
-      for (i in 0 until exec.errorStream.available()) {
-        print(exec.errorStream.read().toChar().also { text += it })
-      }
-      println("Failed to unpack ${version.id}")
-
-      JOptionPane.showMessageDialog(null, "Failed to unpack ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
-      Main.playButton.text = "Play"
-      Main.playButton.enabled = true
-      return
-    }
-
-    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val exec2 = ProcessBuilder(
-        "powershell",
-        "Move-Item",
-        "-Path",
-        Gdx.files.local("temp/${version.id}-extract").list()[0].toString(),
-        "-Destination",
-        "versions/${version.id}"
-      ).inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        var text = ""
-
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar().also { text += it })
-        }
-        println("Failed to move ${version.id}")
-
-        JOptionPane.showMessageDialog(null, "Failed to move ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
-        Main.playButton.text = "Play"
-        Main.playButton.enabled = true
-        return
-      }
-    } else {
-      val exec2 = ProcessBuilder(
-        "powershell",
-        "Move-Item",
-        "-Path",
-        "temp/${version.id}-extract",
-        "-Destination",
-        "versions/${version.id}"
-      ).inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        var text = ""
-
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar().also { text += it })
-        }
-
-        println("Failed to move ${version.id}")
-
-        JOptionPane.showMessageDialog(null, "Failed to move ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
-        Main.playButton.text = "Play"
-        Main.playButton.enabled = true
-        return
-      }
-    }
-  } else if (System.getProperty("os.name").startsWith("Linux")) {
-    if (!Gdx.files.local("versions/${version.id}").exists()) {
-      Gdx.files.local("versions/${version.id}").mkdirs()
-    }
-    val exec = ProcessBuilder("unzip", File("temp/${version.id}").absolutePath, "-d", "temp/${version.id}-extract").inheritIO().start()
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      for (i in 0 until exec.errorStream.available()) {
-        print(exec.errorStream.read().toChar())
-      }
-      println("Failed to unpack ${version.id}")
-    }
-
-    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val exec2 = ProcessBuilder("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}").inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar())
-        }
-        println("Failed to move ${version.id}")
-      }
-    } else {
-      val exec2 = ProcessBuilder("mv", File("temp/${version.id}-extract").absolutePath, "versions/${version.id}").inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar())
-        }
-        println("Failed to move ${version.id}")
-      }
-    }
-  } else if (System.getProperty("os.name").startsWith("Mac")) {
-    if (!Gdx.files.local("temp/${version.id}-extract").exists()) {
-      Gdx.files.local("temp/${version.id}-extract").mkdirs()
-    }
-    val exec = ProcessBuilder("unzip", File("temp/${version.id}").absolutePath, "-d", "temp/${version.id}-extract").inheritIO().start()
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      for (i in 0 until exec.errorStream.available()) {
-        print(exec.errorStream.read().toChar())
-      }
-      println("Failed to unpack ${version.id}")
-    }
-
-    if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-      val exec2 = ProcessBuilder("mv", "${Gdx.files.local("temp/${version.id}-extract").list()[0]}", "versions/${version.id}").inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar())
-        }
-        println("Failed to move ${version.id}")
-      }
-    } else {
-      val exec2 = ProcessBuilder("mv", "temp/${version.id}-extract", "versions/${version.id}").inheritIO().start()
-
-      val waitFor2 =
-        exec2.waitFor()
-
-      if (waitFor2 != 0) {
-        for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar())
-        }
-        println("Failed to move ${version.id}")
-      }
+  if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
+    if (move(Files.list(Paths.get("temp/${version.id}-extract")).findFirst().orElseThrow().toString(), "versions/${version.id}") != 0) {
+      return 1
     }
   } else {
-    throw UnsupportedOperationException()
+    if (move("temp/${version.id}-extract", "versions/${version.id}") != 0) {
+      return 1
+    }
   }
+
+  return 0
 }
 
 fun unpack(path: String, dest: String): Int {
-  Thread.sleep(1000)
-
   if (!Gdx.files.local(path).exists()) {
     println("Failed to find $path")
     return -1
@@ -618,54 +460,161 @@ fun unpack(path: String, dest: String): Int {
     println("Found $dest")
   }
   return if (System.getProperty("os.name").startsWith("Windows")) {
-    val exec = ProcessBuilder(
-      "powershell",
-      "Expand-Archive",
-      "-Path",
-      File(path).absolutePath,
-      "-DestinationPath",
-      File(dest).absolutePath
-    ).inheritIO().start()
-
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      for (i in 0 until exec.errorStream.available()) {
-        print(exec.errorStream.read().toChar())
-      }
-      println("Failed to unpack ${path}")
-
-      JOptionPane.showMessageDialog(null, "Failed to unpack $path", "Error", JOptionPane.ERROR_MESSAGE)
-      Main.playButton.text = "Play"
-      Main.playButton.enabled = true
-    }
-
-    waitFor
+    unpackZip(path, dest)
   } else if (System.getProperty("os.name").startsWith("Linux")) {
-    val exec = ProcessBuilder("tar", "-xvf", File(path).absolutePath, "-C", File(dest).absolutePath).inheritIO().start()
-
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      println("Failed to unpack $path")
-    }
-
-    waitFor
+    unpackTarGZ(path, dest)
   } else if (System.getProperty("os.name").startsWith("Mac")) {
-    val exec = ProcessBuilder("tar", "-xvf", File(path).absolutePath, "-C", File(dest).absolutePath).inheritIO().start()
-
-    val waitFor =
-      exec.waitFor()
-
-    if (waitFor != 0) {
-      println("Failed to unpack $path")
-    }
-
-    waitFor
+    unpackTarGZ(path, dest)
   } else {
     throw UnsupportedOperationException()
+  }
+}
+
+fun move(path: String, dest: String): Int {
+  if (!Gdx.files.local(path).exists()) {
+    println("Failed to find $path")
+    return 1
+  }
+
+  if (Gdx.files.local(dest).exists()) {
+    println("Failed to move $path to $dest, $dest already exists")
+    return 1
+  }
+
+  try {
+    Files.move(Paths.get(path), Paths.get(dest))
+  } catch (e: Exception) {
+    e.printStackTrace()
+    return 1
+  }
+
+  return 0
+}
+
+fun rename(path: String, newName: String): Int {
+  if (!Gdx.files.local(path).exists()) {
+    println("Failed to find $path")
+    return 1
+  }
+
+  try {
+    Files.move(Paths.get(path), Paths.get(newName), StandardCopyOption.ATOMIC_MOVE)
+  } catch (e: Exception) {
+    e.printStackTrace()
+    return 1
+  }
+
+  return 0
+}
+
+fun unpackZip(path: String, dest: String, subFolder: String = ""): Int {
+  if (!Gdx.files.local(path).exists()) {
+    println("Failed to find $path")
+    return -1
+  }
+
+  if (!Gdx.files.local(dest).exists()) {
+    Gdx.files.local(dest).mkdirs()
+  }
+
+  println("Extracting (zip) $path!/ -> $dest")
+
+  ZipInputStream(Gdx.files.local(path).read()).use { zipStream ->
+    try {
+      var entry = zipStream.nextEntry
+      while (entry != null) {
+        if (!entry.name.startsWith(subFolder)) {
+          entry = zipStream.nextEntry
+          continue
+        }
+
+        val file = Gdx.files.local("$dest/${entry.name.substringAfter(subFolder)}")
+        println("Extracting $path!/${entry.name} -> ${file.path()}")
+        if (entry.isDirectory) {
+          file.mkdirs()
+        } else {
+          if (!file.parent().exists())
+            file.parent().mkdirs()
+          file.write(false).use { output ->
+            zipStream.copyTo(output)
+          }
+        }
+
+        entry = zipStream.nextEntry
+      }
+    } catch (e: Exception) {
+      e.printStackTrace()
+      return 1
+    }
+  }
+  return 0
+}
+
+fun unpackTarGZ(path: String, dest: String): Int {
+  if (!Gdx.files.local(path).exists()) {
+    println("Failed to find $path")
+    return -1
+  }
+
+  if (!Gdx.files.local(dest).exists()) {
+    Gdx.files.local(dest).mkdirs()
+  }
+
+  println("Extracting (tar.gz) $path!/ -> $dest")
+
+  try {
+    GZIPInputStream(Gdx.files.local(path).read()).use { gzipStream ->
+      println("Extracting (tar) $path!/!/ -> $dest")
+
+      try {
+        val also = unpackTar(gzipStream, dest, path).also {
+          if (it == 0) {
+            println("Extracted (tar) $path!/!/ -> $dest")
+          }
+        }
+        if (also != 0) {
+          return also
+        }
+      } catch (e: Exception) {
+        e.printStackTrace()
+        return 1
+      }
+    }
+  } catch (e: Exception) {
+    e.printStackTrace()
+    return 1
+  }
+
+  println("Extracted (tar.gz) $path!/ -> $dest")
+
+  return 0
+}
+
+private fun unpackTar(gzipStream: GZIPInputStream, dest: String, path: String): Int {
+  TarArchiveInputStream(gzipStream).use { tarStream ->
+    try {
+      var entry = tarStream.nextEntry
+      while (entry != null) {
+        val file = Gdx.files.local("$dest/${entry.name}")
+        println("Extracting $path!/!/${entry.name} -> ${file.path()}")
+        if (entry.isDirectory) {
+          file.mkdirs()
+        } else {
+          if (!file.parent().exists())
+            file.parent().mkdirs()
+          file.write(false).use { output ->
+            tarStream.copyTo(output)
+          }
+        }
+
+        entry = tarStream.nextEntry
+      }
+
+      return 0
+    } catch (e: Exception) {
+      e.printStackTrace()
+      return 1
+    }
   }
 }
 
@@ -715,7 +664,10 @@ object Main : ApplicationAdapter() {
       }
 
       if (!version.isDownloaded()) {
-        downloadGame(version, this) {
+        val name = version.id + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else ""
+        download(version.gameUrl, name, onProgress = { text = "Downloading Game (${(it * 100).toInt()}%)" }) {
+          text = "Extracting Game"
+          unpackGame(version)
 
           File("temp").deleteRecursively()
           text = "Launching ${version.name}"
@@ -776,16 +728,37 @@ object Main : ApplicationAdapter() {
       versionButtons[0].selected = true
     }
 
-    File("versions").mkdirs()
-    File("temp").mkdirs()
+    File("versions").absoluteFile.mkdirs()
+    File("temp").absoluteFile.mkdirs()
 
     playButton.text = "Play"
-    if (!File("jdk").exists()) {
+    if (!File("jdk").absoluteFile.exists()) {
       playButton.enabled = false
-      download(JDK_URL, "jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "", onProgress = {
+
+      download(JDK_URL, "jdk.tmp", onProgress = {
         playButton.text = "Downloading JDK (${(it * 100).toInt()}%)"
       }) {
-        unpack("temp/jdk" + if (System.getProperty("os.name").startsWith("Windows")) ".zip" else "", "jdk")
+        playButton.text = "Extracting JDK"
+        if (unpack(it.toString(), Paths.get("jdk").toString()) != 0) {
+          playButton.enabled = false
+          playButton.text = "Failed to unpack JDK"
+
+          return@download
+        }
+
+        Thread.sleep(10000)
+
+        if (!System.getProperty("os.name").startsWith("Windows")) {
+          playButton.text = "Setting permissions"
+
+          val folder: Path = Paths.get("$JAVA_HOME/bin").absolute()
+          Files.newDirectoryStream(folder).use { stream ->
+            for (file in stream) {
+              println("Setting permissions for ${file.absolute()}")
+              Files.setAttribute(file.absolute(), "posix:permissions", PosixFilePermissions.fromString("rwxr-xr-x"))
+            }
+          }
+        }
 
         playButton.enabled = true
         playButton.text = "Play"
