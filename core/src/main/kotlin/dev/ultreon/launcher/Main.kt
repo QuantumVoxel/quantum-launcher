@@ -430,7 +430,7 @@ fun unpackGame(version: GameVersion) {
     }
 
     val exec = Runtime.getRuntime()
-      .exec(arrayOf("powershell", "Expand-Archive", "-Path", "temp/${version.id}", "-DestinationPath", "versions/${version.id}"))
+      .exec(arrayOf("powershell", "Expand-Archive", "-Path", "temp/${version.id}", "-DestinationPath", "temp/${version.id}-extract"))
 
     val waitFor =
       exec.waitFor()
@@ -444,7 +444,7 @@ fun unpackGame(version: GameVersion) {
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
       val exec2 = Runtime.getRuntime()
-        .exec(arrayOf("powershell", "Move-Item", "-Path", "versions/${version.id}/*", "-Destination", "versions/${version.id}"))
+        .exec(arrayOf("powershell", "Move-Item", "-Path", "temp/${version.id}-extract/", "-Destination", "versions/${version.id}"))
 
       val waitFor2 =
         exec2.waitFor()
