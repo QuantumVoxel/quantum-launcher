@@ -16,6 +16,7 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.net.URL
 import java.util.zip.ZipFile
+import javax.swing.JOptionPane
 import kotlin.concurrent.thread
 
 abstract class Widget(var x: Float = 0f, var y: Float = 0f, var width: Float = 20f, var height: Float = 20f) {
@@ -436,10 +437,16 @@ fun unpackGame(version: GameVersion) {
       exec.waitFor()
 
     if (waitFor != 0) {
+      var text = ""
       for (i in 0 until exec.errorStream.available()) {
-        print(exec.errorStream.read().toChar())
+        print(exec.errorStream.read().toChar().also { text += it })
       }
       println("Failed to unpack ${version.id}")
+
+      JOptionPane.showMessageDialog(null, "Failed to unpack ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
+      Main.playButton.text = "Play"
+      Main.playButton.enabled = true
+      return
     }
 
     if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
@@ -450,10 +457,17 @@ fun unpackGame(version: GameVersion) {
         exec2.waitFor()
 
       if (waitFor2 != 0) {
+        var text = ""
+
         for (i in 0 until exec2.errorStream.available()) {
-          print(exec2.errorStream.read().toChar())
+          print(exec2.errorStream.read().toChar().also { text += it })
         }
         println("Failed to move ${version.id}")
+
+        JOptionPane.showMessageDialog(null, "Failed to move ${version.id}\n$text", "Error", JOptionPane.ERROR_MESSAGE)
+        Main.playButton.text = "Play"
+        Main.playButton.enabled = true
+        return
       }
     }
   } else if (System.getProperty("os.name").startsWith("Linux")) {
@@ -602,7 +616,7 @@ object Main : ApplicationAdapter() {
 
   private var triedDestoyingOnce = false
 
-  private val playButton by lazy {
+  val playButton by lazy {
     Button(font, callback = {
       val runningProcess1 = runningProcess
       if (runningProcess1 != null && runningProcess1.isAlive) {
