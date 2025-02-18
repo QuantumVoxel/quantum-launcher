@@ -1,0 +1,59 @@
+name: Native Compile for Artifacts
+
+on:
+  push:
+    branches:
+      - main
+      - 'channels/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM JDK 21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: 'graalvm'
+          java-version: '21'
+
+      - name: Grant execute permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Run Compile
+        run: gradle clean packageWinX64 packageLinuxX64 packageMacM1 packageMacX64
+        env:
+          USERNAME: ${{ secrets.GITHUB_ACTOR }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-package
+          path: lwjgl3/build/construo/winX64/roast
+          retention-days: 1
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-package
+          path: lwjgl3/build/construo/linuxX64/roast
+          retention-days: 1
+
+      - name: Upload macOS x64 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-package
+          path: lwjgl3/build/construo/macosX64/roast
+          retention-days: 1
+
+      - name: Upload macOS M1 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-package
+          path: lwjgl3/build/construo/macosM1/roast
+          retention-days: 1

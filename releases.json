@@ -1,0 +1,445 @@
+{
+releases: [
+	{
+		url: "https://api.github.com/repos/QuantumVoxel/game/releases/200808899"
+		assets_url: "https://api.github.com/repos/QuantumVoxel/game/releases/200808899/assets"
+		upload_url: "https://uploads.github.com/repos/QuantumVoxel/game/releases/200808899/assets{?name,label}"
+		html_url: "https://github.com/QuantumVoxel/game/releases/tag/0.0.2-indev"
+		id: 200808899
+		author: {
+			login: XyperCode
+			id: 30625109
+			node_id: MDQ6VXNlcjMwNjI1MTA5
+			avatar_url: "https://avatars.githubusercontent.com/u/30625109?v=4"
+			gravatar_id: ""
+			url: "https://api.github.com/users/XyperCode"
+			html_url: "https://github.com/XyperCode"
+			followers_url: "https://api.github.com/users/XyperCode/followers"
+			following_url: "https://api.github.com/users/XyperCode/following{/other_user}"
+			gists_url: "https://api.github.com/users/XyperCode/gists{/gist_id}"
+			starred_url: "https://api.github.com/users/XyperCode/starred{/owner}{/repo}"
+			subscriptions_url: "https://api.github.com/users/XyperCode/subscriptions"
+			organizations_url: "https://api.github.com/users/XyperCode/orgs"
+			repos_url: "https://api.github.com/users/XyperCode/repos"
+			events_url: "https://api.github.com/users/XyperCode/events{/privacy}"
+			received_events_url: "https://api.github.com/users/XyperCode/received_events"
+			type: User
+			user_view_type: public
+			site_admin: false
+		}
+		node_id: RE_kwDONkYNw84L-BnD
+		tag_name: 0.0.2-indev
+		target_commitish: channels/edge
+		name: Indev 0.0.2 - Launcher Testing
+		draft: false
+		prerelease: true
+		created_at: 2025-02-17T23:44:56Z
+		published_at: 2025-02-18T00:33:19Z
+		assets: [
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/230062128"
+				id: 230062128
+				node_id: RA_kwDONkYNw84Ntngw
+				name: launcher-package.zip
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/zip
+				state: uploaded
+				size: 216115390
+				download_count: 2
+				created_at: 2025-02-18T00:35:41Z
+				updated_at: 2025-02-18T00:35:46Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.2-indev/launcher-package.zip"
+			}
+		]
+		tarball_url: "https://api.github.com/repos/QuantumVoxel/game/tarball/0.0.2-indev"
+		zipball_url: "https://api.github.com/repos/QuantumVoxel/game/zipball/0.0.2-indev"
+		body: "## What's Changed\r\n* add system requirments  by @guinea7pig in https://github.com/QuantumVoxel/game/pull/11\r\n* Improving API and some other parts by @XyperCode in https://github.com/QuantumVoxel/game/pull/12\r\n\r\n## New Contributors\r\n* @guinea7pig made their first contribution in https://github.com/QuantumVoxel/game/pull/11\r\n\r\n**Full Changelog**: https://github.com/QuantumVoxel/game/compare/0.0.1-indev...0.0.2-indev"
+		mentions_count: 2
+	}
+	{
+		url: "https://api.github.com/repos/QuantumVoxel/game/releases/199259312"
+		assets_url: "https://api.github.com/repos/QuantumVoxel/game/releases/199259312/assets"
+		upload_url: "https://uploads.github.com/repos/QuantumVoxel/game/releases/199259312/assets{?name,label}"
+		html_url: "https://github.com/QuantumVoxel/game/releases/tag/0.0.1-indev"
+		id: 199259312
+		author: {
+			login: XyperCode
+			id: 30625109
+			node_id: MDQ6VXNlcjMwNjI1MTA5
+			avatar_url: "https://avatars.githubusercontent.com/u/30625109?v=4"
+			gravatar_id: ""
+			url: "https://api.github.com/users/XyperCode"
+			html_url: "https://github.com/XyperCode"
+			followers_url: "https://api.github.com/users/XyperCode/followers"
+			following_url: "https://api.github.com/users/XyperCode/following{/other_user}"
+			gists_url: "https://api.github.com/users/XyperCode/gists{/gist_id}"
+			starred_url: "https://api.github.com/users/XyperCode/starred{/owner}{/repo}"
+			subscriptions_url: "https://api.github.com/users/XyperCode/subscriptions"
+			organizations_url: "https://api.github.com/users/XyperCode/orgs"
+			repos_url: "https://api.github.com/users/XyperCode/repos"
+			events_url: "https://api.github.com/users/XyperCode/events{/privacy}"
+			received_events_url: "https://api.github.com/users/XyperCode/received_events"
+			type: User
+			user_view_type: public
+			site_admin: false
+		}
+		node_id: RE_kwDONkYNw84L4HSw
+		tag_name: 0.0.1-indev
+		target_commitish: channels/edge
+		name: Indev 0.0.1 - Improving
+		draft: false
+		prerelease: true
+		created_at: 2025-02-09T18:28:26Z
+		published_at: 2025-02-09T18:29:25Z
+		assets: [
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/227658968"
+				id: 227658968
+				node_id: RA_kwDONkYNw84NkczY
+				name: dlc-core.qvcontent
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 36680
+				download_count: 2
+				created_at: 2025-02-09T18:35:26Z
+				updated_at: 2025-02-09T18:35:26Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.1-indev/dlc-core.qvcontent"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/227658967"
+				id: 227658967
+				node_id: RA_kwDONkYNw84NkczX
+				name: dlc-extended.qvcontent
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 27664
+				download_count: 1
+				created_at: 2025-02-09T18:35:26Z
+				updated_at: 2025-02-09T18:35:26Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.1-indev/dlc-extended.qvcontent"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/227658936"
+				id: 227658936
+				node_id: RA_kwDONkYNw84Nkcy4
+				name: QuantumVoxel-linux
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 497056816
+				download_count: 6
+				created_at: 2025-02-09T18:35:11Z
+				updated_at: 2025-02-09T18:35:25Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.1-indev/QuantumVoxel-linux"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/227659011"
+				id: 227659011
+				node_id: RA_kwDONkYNw84Nkc0D
+				name: QuantumVoxel-macos
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 560669104
+				download_count: 2
+				created_at: 2025-02-09T18:35:56Z
+				updated_at: 2025-02-09T18:36:35Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.1-indev/QuantumVoxel-macos"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/227659047"
+				id: 227659047
+				node_id: RA_kwDONkYNw84Nkc0n
+				name: QuantumVoxel-windows.exe
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 306790400
+				download_count: 3
+				created_at: 2025-02-09T18:36:39Z
+				updated_at: 2025-02-09T18:36:48Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.1-indev/QuantumVoxel-windows.exe"
+			}
+		]
+		tarball_url: "https://api.github.com/repos/QuantumVoxel/game/tarball/0.0.1-indev"
+		zipball_url: "https://api.github.com/repos/QuantumVoxel/game/zipball/0.0.1-indev"
+		body: "## What's Changed\r\n* WIP Contexts and Virtual Functions by @XyperCode in https://github.com/QuantumVoxel/game/pull/1\r\n* Add safeguard for the chunk load bomb issue by @XyperCode in https://github.com/QuantumVoxel/game/pull/5\r\n* Update GraalVM version to 23 by @XyperCode in https://github.com/QuantumVoxel/game/pull/6\r\n* Update Java language version to 23 by @XyperCode in https://github.com/QuantumVoxel/game/pull/7\r\n* Fix Native Image crash by @XyperCode in https://github.com/QuantumVoxel/game/pull/8\r\n* Remove compileIcon task due to it being useless, and breaking CI by @XyperCode in https://github.com/QuantumVoxel/game/pull/9\r\n* Add permissions to GitHub Actions workflow by @XyperCode in https://github.com/QuantumVoxel/game/pull/10\r\n\r\n## New Contributors\r\n* @XyperCode made their first contribution in https://github.com/QuantumVoxel/game/pull/1\r\n\r\n**Full Changelog**: https://github.com/QuantumVoxel/game/compare/0.0.0-indev...0.0.1-indev"
+		mentions_count: 1
+	}
+	{
+		url: "https://api.github.com/repos/QuantumVoxel/game/releases/198239928"
+		assets_url: "https://api.github.com/repos/QuantumVoxel/game/releases/198239928/assets"
+		upload_url: "https://uploads.github.com/repos/QuantumVoxel/game/releases/198239928/assets{?name,label}"
+		html_url: "https://github.com/QuantumVoxel/game/releases/tag/0.0.0-indev"
+		id: 198239928
+		author: {
+			login: XyperCode
+			id: 30625109
+			node_id: MDQ6VXNlcjMwNjI1MTA5
+			avatar_url: "https://avatars.githubusercontent.com/u/30625109?v=4"
+			gravatar_id: ""
+			url: "https://api.github.com/users/XyperCode"
+			html_url: "https://github.com/XyperCode"
+			followers_url: "https://api.github.com/users/XyperCode/followers"
+			following_url: "https://api.github.com/users/XyperCode/following{/other_user}"
+			gists_url: "https://api.github.com/users/XyperCode/gists{/gist_id}"
+			starred_url: "https://api.github.com/users/XyperCode/starred{/owner}{/repo}"
+			subscriptions_url: "https://api.github.com/users/XyperCode/subscriptions"
+			organizations_url: "https://api.github.com/users/XyperCode/orgs"
+			repos_url: "https://api.github.com/users/XyperCode/repos"
+			events_url: "https://api.github.com/users/XyperCode/events{/privacy}"
+			received_events_url: "https://api.github.com/users/XyperCode/received_events"
+			type: User
+			user_view_type: public
+			site_admin: false
+		}
+		node_id: RE_kwDONkYNw84L0Oa4
+		tag_name: 0.0.0-indev
+		target_commitish: channels/edge
+		name: Indev 0.0.0 - The Beginnings
+		draft: false
+		prerelease: true
+		created_at: 2025-02-04T03:31:34Z
+		published_at: 2025-02-04T03:32:51Z
+		assets: [
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/226061416"
+				id: 226061416
+				node_id: RA_kwDONkYNw84NeWxo
+				name: QuantumVoxel-linux
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 489856048
+				download_count: 0
+				created_at: 2025-02-04T03:37:59Z
+				updated_at: 2025-02-04T03:38:14Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.0-indev/QuantumVoxel-linux"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/226061475"
+				id: 226061475
+				node_id: RA_kwDONkYNw84NeWyj
+				name: QuantumVoxel-macos
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 554137152
+				download_count: 0
+				created_at: 2025-02-04T03:38:26Z
+				updated_at: 2025-02-04T03:38:56Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.0-indev/QuantumVoxel-macos"
+			}
+			{
+				url: "https://api.github.com/repos/QuantumVoxel/game/releases/assets/226061571"
+				id: 226061571
+				node_id: RA_kwDONkYNw84NeW0D
+				name: QuantumVoxel-windows.exe
+				label: ""
+				uploader: {
+					login: "github-actions[bot]"
+					id: 41898282
+					node_id: MDM6Qm90NDE4OTgyODI=
+					avatar_url: "https://avatars.githubusercontent.com/in/15368?v=4"
+					gravatar_id: ""
+					url: "https://api.github.com/users/github-actions%5Bbot%5D"
+					html_url: "https://github.com/apps/github-actions"
+					followers_url: "https://api.github.com/users/github-actions%5Bbot%5D/followers"
+					following_url: "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}"
+					gists_url: "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}"
+					starred_url: "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}"
+					subscriptions_url: "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions"
+					organizations_url: "https://api.github.com/users/github-actions%5Bbot%5D/orgs"
+					repos_url: "https://api.github.com/users/github-actions%5Bbot%5D/repos"
+					events_url: "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}"
+					received_events_url: "https://api.github.com/users/github-actions%5Bbot%5D/received_events"
+					type: Bot
+					user_view_type: public
+					site_admin: false
+				}
+				content_type: application/octet-stream
+				state: uploaded
+				size: 299761664
+				download_count: 0
+				created_at: 2025-02-04T03:39:01Z
+				updated_at: 2025-02-04T03:39:11Z
+				browser_download_url: "https://github.com/QuantumVoxel/game/releases/download/0.0.0-indev/QuantumVoxel-windows.exe"
+			}
+		]
+		tarball_url: "https://api.github.com/repos/QuantumVoxel/game/tarball/0.0.0-indev"
+		zipball_url: "https://api.github.com/repos/QuantumVoxel/game/zipball/0.0.0-indev"
+		body: "**Full Changelog**: https://github.com/Ultreon/quantumvoxel-recomp/commits/0.0.0-indev"
+	}
+]
+cache_time: 1739840999163
+}
