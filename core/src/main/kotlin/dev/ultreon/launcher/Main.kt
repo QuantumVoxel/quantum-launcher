@@ -2,14 +2,11 @@ package dev.ultreon.launcher
 
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
-import com.badlogic.gdx.graphics.g2d.NinePatch
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.JsonReader
 import com.badlogic.gdx.utils.JsonValue
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -41,112 +38,9 @@ val root: Path by lazy {
   }
 }
 
-abstract class Widget(var x: Float = 0f, var y: Float = 0f, var width: Float = 20f, var height: Float = 20f) {
-
-  abstract fun render(batch: SpriteBatch, delta: Float)
-  fun set(x: Float? = null, y: Float? = null, width: Float? = null, height: Float? = null) {
-    x?.let { this.x = it }
-    y?.let { this.y = it }
-    width?.let { this.width = it }
-    height?.let { this.height = it }
-  }
-}
-
-class Button(
-  private val font: BitmapFont,
-  var text: String = "...",
-  val callback: Button.() -> Unit = {},
-  x: Float = 0f,
-  y: Float = 0f,
-  width: Float = 20f,
-  height: Float = 20f
-) : Widget(x, y, width, height) {
-  private val ninePatch: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark.png")), 7, 7, 4, 6))
-  private val ninePatchPressed: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_pressed.png")), 7, 7, 4, 6))
-  private val ninePatchDisabled: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_disabled.png")), 7, 7, 4, 6))
-  private val ninePatchHover: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_hover.png")), 7, 7, 4, 6))
-  private val ninePatchHoverPressed: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_hover_pressed.png")), 7, 7, 4, 6))
-  private val ninePatchSelect: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_select.png")), 7, 7, 4, 6))
-  private val ninePatchHoverSelect: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_hover_select.png")), 7, 7, 4, 6))
-  private val ninePatchPressedSelect: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_pressed_select.png")), 7, 7, 4, 6))
-  private val ninePatchHoverPressedSelect: NinePatchDrawable =
-    NinePatchDrawable(NinePatch(Texture(Gdx.files.internal("btn/dark_hover_pressed_select.png")), 7, 7, 4, 6))
-  private var wasPressed: Boolean = false
-
-  private val pressed: Boolean
-    get() {
-      if (!enabled) return false
-
-      if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
-        if (Gdx.input.x / 2f > x && (Gdx.graphics.height - Gdx.input.y) / 2f > y && Gdx.input.x / 2f < x + width && (Gdx.graphics.height - Gdx.input.y) / 2f < y + height) {
-          wasPressed = true
-          return true
-        }
-      } else {
-        if (wasPressed) {
-          callback()
-        }
-        wasPressed = false
-      }
-
-      return false
-    }
-  var enabled: Boolean = true
-
-  var selected: Boolean = false
-
-  override fun render(batch: SpriteBatch, delta: Float) {
-    (if (pressed) {
-      pressed()
-    } else if (enabled) {
-      enabled()
-    } else {
-      ninePatchDisabled
-    }).draw(
-      batch,
-      x,
-      y,
-      width,
-      height
-    )
-
-    font.draw(
-      batch,
-      text,
-      x + (width - font.width(text)) / 2f,
-      y + 10 + (height - 9) / 2f - font.lineHeight / 2f + 6 - (if (pressed) 2 else 0)
-    )
-  }
-
-  private fun enabled() =
-    if (Gdx.input.x / 2f > x && (Gdx.graphics.height - Gdx.input.y) / 2f > y && Gdx.input.x / 2f < x + width && (Gdx.graphics.height - Gdx.input.y) / 2f < y + height) {
-      if (selected) ninePatchHoverSelect else ninePatchHover
-    } else if (selected) {
-      ninePatchSelect
-    } else {
-      ninePatch
-    }
-  private fun pressed() =
-    if (Gdx.input.x / 2f > x && (Gdx.graphics.height - Gdx.input.y) / 2f > y && Gdx.input.x / 2f < x + width && (Gdx.graphics.height - Gdx.input.y) / 2f < y + height) {
-      if (selected) ninePatchHoverPressedSelect else ninePatchHoverPressed
-    } else if (selected) {
-      ninePatchPressedSelect
-    } else {
-      ninePatchPressed
-    }
-}
-
 var layout: GlyphLayout = GlyphLayout()
 
-private fun BitmapFont.width(text: String): Float {
+fun BitmapFont.width(text: String): Float {
   layout.setText(this, text)
   return layout.width
 }
@@ -161,26 +55,29 @@ private fun launchGame(version: GameVersion, button: Button): Process {
   }
 
   try {
-    return if (version.id in arrayOf("0.0.0-indev", "0.0.1-indev") || version is ChannelVersion) {
-//      if (osName.startsWith("Windows")) {
-//        ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
-//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
-//          directory(path("versions/${version.id}/").toFile())
-//        }.start()
-//      } else if (osName.startsWith("Linux")) {
-//        ProcessBuilder("bash", "-c", "chmod +x gradlew && chmod +x ./gradle/wrapper/gradle-wrapper.jar && ./gradlew --info --stacktrace --console=plain --no-daemon lwjgl3:run").run {
-//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
-//          directory(path("versions/${version.id}/").toFile())
-//        }.start()
-//      } else if (osName.startsWith("Mac")) {
-//        ProcessBuilder("bash", "-c", "chmod +x gradlew && chmod +x ./gradle/wrapper/gradle-wrapper.jar && ./gradlew --info --stacktrace --console=plain --no-daemon lwjgl3:run").run {
-//          environment()["JAVA_HOME"] = JAVA_HOME.toString()
-//          directory(path("versions/${version.id}/").toFile())
-//        }.start()
-//      } else {
-//        throw UnsupportedOperationException()
-//      }
-      throw UnsupportedOperationException()
+    val b = version.id in arrayOf("0.0.0-indev", "0.0.1-indev")
+    return if (b || version is ChannelVersion) {
+      if (osName.startsWith("Windows")) {
+        ProcessBuilder("cmd", "/c", "gradlew.bat --no-daemon lwjgl3:run").run {
+          environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
+          environment()["GRADLE_OPTS"] = "-Dorg.gradle.daemon=false -Djdk.lang.Process.launchMechanism=fork"
+          directory(path("versions/${version.id}/").toFile())
+        }.inheritIO().start()
+      } else if (osName.startsWith("Linux")) {
+        ProcessBuilder("bash", "-c", "chmod +x gradlew && chmod +x ./gradle/wrapper/gradle-wrapper.jar && ./gradlew --info --stacktrace --console=plain --no-daemon lwjgl3:run").run {
+          environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
+          environment()["GRADLE_OPTS"] = "-Dorg.gradle.daemon=false -Djdk.lang.Process.launchMechanism=fork"
+          directory(path("versions/${version.id}/").toFile())
+        }.inheritIO().start()
+      } else if (osName.startsWith("Mac")) {
+        ProcessBuilder("zsh", "-c", "GRADLE_OPTS=\"-Dorg.gradle.daemon=false -Djdk.lang.Process.launchMechanism=fork\" chmod +x gradlew && ./gradlew --no-daemon --stacktrace lwjgl3:run").run {
+          environment()["PATH"] = "$JAVA_HOME/bin:${System.getenv("PATH")}"
+          environment()["GRADLE_OPTS"] = "-Dorg.gradle.daemon=false -Djdk.lang.Process.launchMechanism=fork"
+          directory(path("versions/${version.id}/").toFile())
+        }.inheritIO().start()
+      } else {
+        throw UnsupportedOperationException()
+      }
     } else {
       if (osName.startsWith("Windows")) {
         ProcessBuilder(
@@ -290,6 +187,8 @@ fun log(text: String?) {
   synchronized(logFile) {
     logFile.seek(logFile.length())
     logFile.write("INFO: $text\n".toByteArray())
+
+    println("INFO: $text")
   }
 }
 
@@ -735,18 +634,16 @@ object Main : ApplicationAdapter() {
   private val channels by lazy {
     val list = mutableListOf<String>()
     list += "edge"
-    list += "beta"
-    list += "release"
+//    list += "beta"
+//    list += "release"
 
     list.map { GameChannel(it, "https://github.com/QuantumVoxel/game/archive/refs/heads/channels/$it.zip") }
   }
 
   private val availableVersions by lazy {
     val list = mutableListOf<GameVersion>()
-//    list += channels.map { ChannelVersion(it) }
-    list += versionsFromGitHub().filter {
-      it.id != "0.0.0-indev" && it.id != "0.0.1-indev" && it.id != "0.0.2-indev" && it.id != "0.0.3-indev"
-    }
+    list += channels.map { ChannelVersion(it) }
+    list += versionsFromGitHub().filter { it.id != "0.0.0-indev" && it.id != "0.0.1-indev" && it.id != "0.0.2-indev" && it.id != "0.0.3-indev" }
     list
   }
 
